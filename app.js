@@ -30,12 +30,12 @@ app.use(express.json({ limit: '100mb' })); // Ajusta el límite según el tamañ
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 // Rutas
 
-app.use('/api/verification', verificationRoutes); // CasesDB ---> manejador de casos
-app.use('/api/users', accessRoutes); // CasesDB ---> distribuidor de casos RENOMBRAR
+app.use('/api/loans/verification', verificationRoutes); // CasesDB ---> manejador de casos
+app.use('/api/loans/users', accessRoutes); // CasesDB ---> distribuidor de casos RENOMBRAR
 
-app.use('/api/counter', counterRoutes); // CasesDB ---> contador de numerosDeCaso
+app.use('/api/loans/counter', counterRoutes); // CasesDB ---> contador de numerosDeCaso
 //Contador de clabes routes
-app.use('/api/clabes', clabesRoutes); // CasesDB ---> distribuidor de casos RENOMBRAR
+app.use('/api/loans/clabes', clabesRoutes); // CasesDB ---> distribuidor de casos RENOMBRAR
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
