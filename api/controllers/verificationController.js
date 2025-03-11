@@ -515,6 +515,12 @@ export const getReporteDiarioTotales = async (req, res) => {
       reprobadosTotal: 0,
     };
 
+    // Contar casos con asesor de verificación
+    const casosConAsesor = casosDelDia.filter(caso => caso.cuentaVerificador);
+
+    // Total de casos con asesor de verificación
+    const totalCasosConAsesor = casosConAsesor.length;
+
     casosDelDia.forEach((caso) => {
       const hora = new Date(caso.fechaDeTramitacionDelCaso).getUTCHours();
 
@@ -533,13 +539,14 @@ export const getReporteDiarioTotales = async (req, res) => {
       }
     });
 
-    res.json({ totalesGenerales });
+    totalesGenerales.totalCasosConAsesor = totalCasosConAsesor;
+
+    res.json({ totalesGenerales});
   } catch (error) {
     console.error('Error al obtener el reporte diario:', error);
     res.status(500).json({ message: 'Error al obtener los datos' });
   }
 };
-
 
 export const getReporteCDiario = async (req, res) => {
   try {
