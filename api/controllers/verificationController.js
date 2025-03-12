@@ -442,12 +442,13 @@ export const getReporteDiario = async (req, res) => {
           reprobados16pm: 0,
           aprobadosTotal: 0,
           reprobadosTotal: 0,
+          otrosTotal: 0,
         };
       }
 
       const hora = new Date(caso.fechaDeTramitacionDelCaso).getUTCHours();
 
-      if (caso.estadoDeCredito === 'Aprobado') {
+      if (caso.estadoDeCredito === 'Dispersado') {
         if (hora <= 10) resultado[tipo].aprobados10am += 1;
         if (hora > 10 && hora <= 12) resultado[tipo].aprobados12am += 1;
         if (hora > 12 && hora <= 14) resultado[tipo].aprobados14pm += 1;
@@ -459,6 +460,8 @@ export const getReporteDiario = async (req, res) => {
         if (hora > 12 && hora <= 14) resultado[tipo].reprobados14pm += 1;
         if (hora > 14 && hora <= 16) resultado[tipo].reprobados16pm += 1;
         resultado[tipo].reprobadosTotal += 1;
+      } else if (!["Dispersado", "Pendiente"].includes(caso.estadoDeCredito)) {
+        resultado[tipo].otrosTotal += 1;
       }
     });
 
@@ -516,10 +519,17 @@ export const getReporteDiarioTotales = async (req, res) => {
     };
 
     // Contar casos con asesor de verificación
-    const casosConAsesor = casosDelDia.filter(caso => caso.cuentaVerificador);
-
+    const casosConAsesor = casosDelDia.filter(
+      caso => caso.cuentaVerificador && ["Aprobado", "Reprobado", "Dispersado", "Pendiente"].includes(caso.estadoDeCredito)
+    );
+    
+    const casosConAsesorErrados = casosDelDia.filter(
+      caso => caso.cuentaVerificador && !["Aprobado", "Reprobado", "Dispersado", "Pendiente"].includes(caso.estadoDeCredito)
+    );
+    
     // Total de casos con asesor de verificación
     const totalCasosConAsesor = casosConAsesor.length;
+    const totalCasosConAsesorErrados = casosConAsesorErrados.length;
 
     casosDelDia.forEach((caso) => {
       const hora = new Date(caso.fechaDeTramitacionDelCaso).getUTCHours();
@@ -540,6 +550,7 @@ export const getReporteDiarioTotales = async (req, res) => {
     });
 
     totalesGenerales.totalCasosConAsesor = totalCasosConAsesor;
+    totalesGenerales.totalCasosConAsesorErrados = totalCasosConAsesorErrados;
 
     res.json({ totalesGenerales});
   } catch (error) {
