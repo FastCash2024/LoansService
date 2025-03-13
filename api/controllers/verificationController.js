@@ -723,7 +723,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
               },
             },
             {
-              estadoDeCredito: { $in: ['Pagado', 'Pagado con Extensión'] },
+              estadoDeCredito: { $in: ['Dispersado', 'Pagado', 'Pagado con Extensión'] },
             },
           ],
         },
@@ -780,6 +780,12 @@ export const getReporteCDiarioTotales = async (req, res) => {
       tasaRecuperacionTotal: 0,
     };
 
+    const casosConAsesor = casosDelDia.filter(
+      caso => caso.cuentaCobrador && ["Dispersado", "Pagado", "Pagado con Extensión"].includes(caso.estadoDeCredito)
+    );
+
+    const totalCasosConAsesor = casosConAsesor.length;
+
     casosDelDia.forEach((caso) => {
       const fechaReferencia =
         caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión'
@@ -821,7 +827,9 @@ export const getReporteCDiarioTotales = async (req, res) => {
       }
     });
 
-    res.json({ data: totales });
+    totales.totalesConAsesor = totalCasosConAsesor;
+
+    res.json({ totales });
 
   } catch (error) {
     console.error('Error al obtener los datos de totales:', error);
