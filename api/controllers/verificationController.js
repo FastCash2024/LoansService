@@ -167,7 +167,7 @@ export const getCreditById = async (req, res) => {
 export const getCreditByPhone = async (req, res) => {
   try {
     const numeroDeTelefonoMovil = req.query.numeroDeTelefonoMovil;
-    
+
     if (!numeroDeTelefonoMovil) return res.status(404).json({ message: 'Número de teléfono no proporcionado' });
 
     // Filtrar por número de teléfono
@@ -247,7 +247,7 @@ const enviarSolicitudAprobacion = async (credit) => {
 export const updateCreditoAprobado = async (req, res) => {
   try {
 
-    const {estadoDeCredito, ...trackingData} = req.body;
+    const { estadoDeCredito, ...trackingData } = req.body;
 
     const updatedCredit = await VerificationCollection.findByIdAndUpdate(
       req.params.id,
@@ -324,7 +324,7 @@ export const getVerificationCount = async (req, res) => {
 
     res.json({ collectionCount: count });
   } catch (error) {
-    res.status(500).json({ message: 'Error al contar los documentos'. error.message });
+    res.status(500).json({ message: 'Error al contar los documentos'.error.message });
   }
 }
 
@@ -397,6 +397,7 @@ export const getReporteDiario = async (req, res) => {
     const { fecha, estadoDeCredito } = req.query;
     const today = fecha || moment().format('DD/MM/YYYY');
 
+    // obtener los casos del dia
     const filter = {
       $expr: {
         $eq: [
@@ -446,21 +447,36 @@ export const getReporteDiario = async (req, res) => {
         };
       }
 
-      const hora = new Date(caso.fechaDeTramitacionDelCaso).getUTCHours();
+      const fechaTramitacion = moment(caso.fechaDeTramitacionDelCaso).format('DD/MM/YYYY');
+      const fechaDispersion = caso.fechaDeDispersion
+        ? moment(caso.fechaDeDispersion).format('DD/MM/YYYY')
+        : null;
 
-      if (caso.estadoDeCredito === 'Dispersado') {
-        if (hora <= 10) resultado[tipo].aprobados10am += 1;
-        if (hora > 10 && hora <= 12) resultado[tipo].aprobados12am += 1;
-        if (hora > 12 && hora <= 14) resultado[tipo].aprobados14pm += 1;
-        if (hora > 14 && hora <= 16) resultado[tipo].aprobados16pm += 1;
-        resultado[tipo].aprobadosTotal += 1; // Ajustado el cálculo correcto
+      const hora = caso.estadoDeCredito === 'Reprobado'
+        ? new Date(caso.fechaDeTramitacionDelCaso).getUTCHours()
+        : caso.fechaDeDispersion
+          ? new Date(caso.fechaDeDispersion).getUTCHours()
+          : null;
+
+      const esAprobado = fechaTramitacion === fechaDispersion;
+
+      if (esAprobado && (caso.estadoDeCredito === 'Dispersado' || caso.estadoDeCredito === 'Aprobado')) {
+        if (hora !== null) {
+          if (hora <= 10) resultado[tipo].aprobados10am += 1;
+          if (hora > 10 && hora <= 12) resultado[tipo].aprobados12am += 1;
+          if (hora > 12 && hora <= 14) resultado[tipo].aprobados14pm += 1;
+          if (hora > 14 && hora <= 16) resultado[tipo].aprobados16pm += 1;
+        }
+        resultado[tipo].aprobadosTotal += 1;
       } else if (caso.estadoDeCredito === 'Reprobado') {
-        if (hora <= 10) resultado[tipo].reprobados10am += 1;
-        if (hora > 10 && hora <= 12) resultado[tipo].reprobados12am += 1;
-        if (hora > 12 && hora <= 14) resultado[tipo].reprobados14pm += 1;
-        if (hora > 14 && hora <= 16) resultado[tipo].reprobados16pm += 1;
+        if (hora !== null) {
+          if (hora <= 10) resultado[tipo].reprobados10am += 1;
+          if (hora > 10 && hora <= 12) resultado[tipo].reprobados12am += 1;
+          if (hora > 12 && hora <= 14) resultado[tipo].reprobados14pm += 1;
+          if (hora > 14 && hora <= 16) resultado[tipo].reprobados16pm += 1;
+        }
         resultado[tipo].reprobadosTotal += 1;
-      } else if (!["Dispersado", "Pendiente"].includes(caso.estadoDeCredito)) {
+      } else if (!["Dispersado", "Aprobado", "Pendiente"].includes(caso.estadoDeCredito)) {
         resultado[tipo].otrosTotal += 1;
       }
     });
@@ -518,41 +534,56 @@ export const getReporteDiarioTotales = async (req, res) => {
       reprobadosTotal: 0,
     };
 
-    // Contar casos con asesor de verificación
     const casosConAsesor = casosDelDia.filter(
       caso => caso.cuentaVerificador && ["Aprobado", "Reprobado", "Dispersado", "Pendiente"].includes(caso.estadoDeCredito)
     );
-    
+
     const casosConAsesorErrados = casosDelDia.filter(
       caso => caso.cuentaVerificador && !["Aprobado", "Reprobado", "Dispersado", "Pendiente"].includes(caso.estadoDeCredito)
     );
-    
-    // Total de casos con asesor de verificación
+
     const totalCasosConAsesor = casosConAsesor.length;
     const totalCasosConAsesorErrados = casosConAsesorErrados.length;
 
     casosDelDia.forEach((caso) => {
-      const hora = new Date(caso.fechaDeTramitacionDelCaso).getUTCHours();
 
-      if (caso.estadoDeCredito === 'Aprobado') {
-        if (hora <= 10) totalesGenerales.aprobados10am += 1;
-        if (hora > 10 && hora <= 12) totalesGenerales.aprobados12am += 1;
-        if (hora > 12 && hora <= 14) totalesGenerales.aprobados14pm += 1;
-        if (hora > 14 && hora <= 16) totalesGenerales.aprobados16pm += 1;
+      const fechaTramitacion = moment(caso.fechaDeTramitacionDelCaso).format('DD/MM/YYYY');
+      const fechaDispersion = caso.fechaDeDispersion
+        ? moment(caso.fechaDeDispersion).format('DD/MM/YYYY')
+        : null;
+
+      const hora =
+        caso.estadoDeCredito === 'Reprobado'
+          ? new Date(caso.fechaDeTramitacionDelCaso).getUTCHours()
+          : caso.fechaDeDispersion && fechaTramitacion === fechaDispersion
+            ? new Date(caso.fechaDeDispersion).getUTCHours()
+            : null;
+
+      if (["Aprobado", "Dispersado"].includes(caso.estadoDeCredito) && fechaTramitacion === fechaDispersion) {
+        if (hora !== null) {
+          if (hora <= 10) totalesGenerales.aprobados10am += 1;
+          if (hora > 10 && hora <= 12) totalesGenerales.aprobados12am += 1;
+          if (hora > 12 && hora <= 14) totalesGenerales.aprobados14pm += 1;
+          if (hora > 14 && hora <= 16) totalesGenerales.aprobados16pm += 1;
+        }
         totalesGenerales.aprobadosTotal += 1;
-      } else if (caso.estadoDeCredito === 'Reprobado') {
-        if (hora <= 10) totalesGenerales.reprobados10am += 1;
-        if (hora > 10 && hora <= 12) totalesGenerales.reprobados12am += 1;
-        if (hora > 12 && hora <= 14) totalesGenerales.reprobados14pm += 1;
-        if (hora > 14 && hora <= 16) totalesGenerales.reprobados16pm += 1;
+      }
+      else if (caso.estadoDeCredito === 'Reprobado') {
+        if (hora !== null) {
+          if (hora <= 10) totalesGenerales.reprobados10am += 1;
+          if (hora > 10 && hora <= 12) totalesGenerales.reprobados12am += 1;
+          if (hora > 12 && hora <= 14) totalesGenerales.reprobados14pm += 1;
+          if (hora > 14 && hora <= 16) totalesGenerales.reprobados16pm += 1;
+        }
         totalesGenerales.reprobadosTotal += 1;
       }
     });
 
+
     totalesGenerales.totalCasosConAsesor = totalCasosConAsesor;
     totalesGenerales.totalCasosConAsesorErrados = totalCasosConAsesorErrados;
 
-    res.json({ totalesGenerales});
+    res.json({ totalesGenerales });
   } catch (error) {
     console.error('Error al obtener el reporte diario:', error);
     res.status(500).json({ message: 'Error al obtener los datos' });
@@ -619,7 +650,7 @@ export const getReporteCDiario = async (req, res) => {
       });
     }
 
-    const casosDelDia = await VerificationCollection.find(filter);   
+    const casosDelDia = await VerificationCollection.find(filter);
 
     if (casosDelDia.length === 0) {
       return res.json({
@@ -631,7 +662,7 @@ export const getReporteCDiario = async (req, res) => {
     const resultado = {};
 
     casosDelDia.forEach((caso) => {
-      const tipo = caso.cuentaCobrador || 'Desconocido'; // Agrupar por cuentaCobrador
+      const tipo = caso.cuentaCobrador || 'Desconocido';
       if (!resultado[tipo]) {
         resultado[tipo] = {
           pagos10am: 0,
@@ -654,14 +685,15 @@ export const getReporteCDiario = async (req, res) => {
         };
       }
 
-      const fechaReferencia =
-        caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión'
-          ? caso.fechaDeTramitacionDeCobro
-          : caso.fechaRegistroComunicacion;
-      const hora = new Date(fechaReferencia).getHours();
+      let hora;
       const monto = parseFloat(caso.valorSolicitado || 0);
 
-      if (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') {
+      if (
+        (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
+        moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
+      ) {
+        hora = new Date(caso.fechaDeReembolso).getUTCHours();
+
         if (hora <= 10) {
           resultado[tipo].pagos10am += 1;
           resultado[tipo].tasaRecuperacion10am += monto;
@@ -684,7 +716,11 @@ export const getReporteCDiario = async (req, res) => {
         }
         resultado[tipo].pagosTotal += 1;
         resultado[tipo].tasaRecuperacionTotal += monto;
-      } else if (caso.estadoDeComunicacion === 'Pagará pronto') {
+      }
+
+      if (caso.estadoDeComunicacion === 'Pagará pronto') {
+        hora = new Date(caso.fechaRegistroComunicacion).getUTCHours();
+
         if (hora <= 10) resultado[tipo].ptp10am += 1;
         if (hora > 10 && hora <= 12) resultado[tipo].ptp12am += 1;
         if (hora > 12 && hora <= 14) resultado[tipo].ptp2pm += 1;
@@ -781,21 +817,21 @@ export const getReporteCDiarioTotales = async (req, res) => {
     };
 
     const casosConAsesor = casosDelDia.filter(
-      caso => caso.cuentaCobrador && ["Dispersado", "Pagado", "Pagado con Extensión"].includes(caso.estadoDeCredito)
+      (caso) => caso.cuentaCobrador && ["Dispersado", "Pagado", "Pagado con Extensión"].includes(caso.estadoDeCredito)
     );
 
     const totalCasosConAsesor = casosConAsesor.length;
 
     casosDelDia.forEach((caso) => {
-      const fechaReferencia =
-        caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión'
-          ? caso.fechaDeTramitacionDeCobro
-          : caso.fechaRegistroComunicacion;
-
-      const hora = new Date(fechaReferencia).getHours();
+      let hora;
       const monto = parseFloat(caso.valorSolicitado || 0);
 
-      if (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') {
+      if (
+        (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
+        moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
+      ) {
+        hora = new Date(caso.fechaDeReembolso).getUTCHours();
+
         if (hora <= 10) {
           totales.pagos10am += 1;
           totales.tasaRecuperacion10am += monto;
@@ -818,7 +854,11 @@ export const getReporteCDiarioTotales = async (req, res) => {
         }
         totales.pagosTotal += 1;
         totales.tasaRecuperacionTotal += monto;
-      } else if (caso.estadoDeComunicacion === 'Pagará pronto') {
+      }
+
+      if (caso.estadoDeComunicacion === 'Pagará pronto') {
+        hora = new Date(caso.fechaRegistroComunicacion).getUTCHours();
+
         if (hora <= 10) totales.ptp10am += 1;
         if (hora > 10 && hora <= 12) totales.ptp12am += 1;
         if (hora > 12 && hora <= 14) totales.ptp2pm += 1;
@@ -836,9 +876,6 @@ export const getReporteCDiarioTotales = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener los datos' });
   }
 };
-
-
-
 
 
 export const getUpdateSTP = async (req, res) => {
