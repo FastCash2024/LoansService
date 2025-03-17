@@ -453,9 +453,9 @@ export const getReporteDiario = async (req, res) => {
         : null;
 
       const hora = caso.estadoDeCredito === 'Reprobado'
-        ? new Date(caso.fechaDeTramitacionDelCaso).getUTCHours()
+        ? new Date(caso.fechaDeTramitacionDelCaso).getHours()
         : caso.fechaDeDispersion
-          ? new Date(caso.fechaDeDispersion).getUTCHours()
+          ? new Date(caso.fechaDeDispersion).getHours()
           : null;
 
       const esAprobado = fechaTramitacion === fechaDispersion;
@@ -554,9 +554,9 @@ export const getReporteDiarioTotales = async (req, res) => {
 
       const hora =
         caso.estadoDeCredito === 'Reprobado'
-          ? new Date(caso.fechaDeTramitacionDelCaso).getUTCHours()
+          ? new Date(caso.fechaDeTramitacionDelCaso).getHours()
           : caso.fechaDeDispersion && fechaTramitacion === fechaDispersion
-            ? new Date(caso.fechaDeDispersion).getUTCHours()
+            ? new Date(caso.fechaDeDispersion).getHours()
             : null;
 
       if (["Aprobado", "Dispersado"].includes(caso.estadoDeCredito) && fechaTramitacion === fechaDispersion) {
@@ -704,7 +704,7 @@ export const getReporteCDiario = async (req, res) => {
         (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
         moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
       ) {
-        hora = new Date(caso.fechaDeReembolso).getUTCHours();
+        hora = new Date(caso.fechaDeReembolso).getHours();
 
         if (hora <= 10) {
           resultado[tipo].pagos10am += 1;
@@ -731,7 +731,7 @@ export const getReporteCDiario = async (req, res) => {
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = new Date(caso.fechaRegistroComunicacion).getUTCHours();
+        hora = new Date(caso.fechaRegistroComunicacion).getHours();
 
         if (hora <= 10) resultado[tipo].ptp10am += 1;
         if (hora > 10 && hora <= 12) resultado[tipo].ptp12am += 1;
@@ -902,7 +902,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
         (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
         moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
       ) {
-        hora = new Date(caso.fechaDeReembolso).getUTCHours();
+        hora = new Date(caso.fechaDeReembolso).getHours();
 
         if (hora <= 10) {
           totales.pagos10am += 1;
@@ -929,7 +929,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = new Date(caso.fechaRegistroComunicacion).getUTCHours();
+        hora = new Date(caso.fechaRegistroComunicacion).getHours();
 
         if (hora <= 10) totales.ptp10am += 1;
         if (hora > 10 && hora <= 12) totales.ptp12am += 1;
