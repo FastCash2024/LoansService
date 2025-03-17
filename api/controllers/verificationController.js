@@ -2,7 +2,7 @@ import VerificationCollection from '../models/VerificationCollection.js';
 import moment from 'moment';
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
 import { createTracking } from './TrakingOperacionesDeCasos.js';
-
+import { ajustarFechaInicio } from '../utilities/dates.js'
 function generarSecuencia(count) {
   let base = 15 + Math.floor(Math.floor(count / 999999)) * 1;
   let numero = count <= 999999 ? count + 1 : 1;
@@ -593,7 +593,16 @@ export const getReporteDiarioTotales = async (req, res) => {
 export const getReporteCDiario = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    const today = fecha || moment().format('DD/MM/YYYY');
+    
+    const fechaHoy = new Date();
+    const opciones = { timeZone: 'America/Mexico_City' };
+
+    // Obtener los valores por separado y formatearlos
+    const dia = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[0].padStart(2, '0');
+    const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
+    const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
+
+    const today = fecha || `${dia}/${mes}/${anio}`;
 
     const filter = {
       $or: [
@@ -742,7 +751,17 @@ export const getReporteCDiario = async (req, res) => {
 export const getReporteCDiarioTotales = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    const today = fecha || moment().format('DD/MM/YYYY');
+
+    const fechaHoy = new Date();
+    const opciones = { timeZone: 'America/Mexico_City' };
+
+    // Obtener los valores por separado y formatearlos
+    const dia = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[0].padStart(2, '0');
+    const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
+    const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
+
+    const today = fecha || `${dia}/${mes}/${anio}`;
+
 
     const filter = {
       $or: [
@@ -818,6 +837,56 @@ export const getReporteCDiarioTotales = async (req, res) => {
       pagosTotal: 0,
       tasaRecuperacionTotal: 0,
     };
+
+    // const casosPorSegmento = { D0: [], D1: [], D2: [], S1: [], S2: [] };
+    // const fechaMexico = new Date().toLocaleString('en-US', {
+    //   timeZone: 'America/Mexico_City', // Zona horaria de Ciudad de México
+    //   weekday: 'short',
+    //   year: 'numeric',
+    //   month: 'short',
+    //   day: 'numeric',
+    //   hour: '2-digit',
+    //   minute: '2-digit',
+    //   second: '2-digit',
+    //   hour12: false,
+    // });
+
+    // const fechaActual = new Date(fechaMexico).toString();
+
+    // casosDelDia.forEach(caso => {
+    //   const fechaTramitacion = ajustarFechaInicio(caso.fechaDeTramitacionDelCaso)
+
+    //   const diferenciaDiasTramitacion = Math.round((new Date(fechaTramitacion) - fechaActual) * (-1) / (1000 * 60 * 60 * 24));
+
+    //   // Validación: Si la fecha de tramitación es hoy, no se asigna
+    //   if (diferenciaDiasTramitacion === 0) {
+    //     console.log(`El caso ${caso.numeroDePrestamo} es reciente y no puede asignarse.`);
+    //     return;
+    //   }
+
+    //   // Validación: Solo se asignan casos cuya fecha de tramitación tenga al menos 5 días
+    //   if (diferenciaDiasTramitacion < 5) {
+    //     console.log(`El caso ${caso.numeroDePrestamo} aún no puede asignarse. Se necesita esperar ${5 - diferenciaDiasTramitacion} días más.`);
+    //     return;
+    //   }
+
+
+    //   if (diferenciaDiasTramitacion === 7) {
+    //     casosPorSegmento.D0.push(caso);
+    //   } else if (diferenciaDiasTramitacion === 6) {
+    //     casosPorSegmento.D1.push(caso);
+    //   } else if (diferenciaDiasTramitacion === 5) {
+    //     casosPorSegmento.D2.push(caso);
+    //   } else if (diferenciaDiasTramitacion > 7 && diferenciaDiasTramitacion < 15) {
+    //     casosPorSegmento.S1.push(caso);
+    //   } else if (diferenciaDiasTramitacion > 14 && diferenciaDiasTramitacion <= 22) {
+    //     casosPorSegmento.S2.push(caso);
+    //   }
+    // });
+
+    // console.log(casosPorSegmento)
+
+
 
     const casosConAsesor = casosDelDia.filter(
       (caso) => caso.cuentaCobrador && ["Dispersado", "Pagado", "Pagado con Extensión"].includes(caso.estadoDeCredito)
