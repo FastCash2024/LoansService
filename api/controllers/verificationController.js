@@ -739,8 +739,20 @@ export const getReporteCDiario = async (req, res) => {
 export const getReporteCDiarioTotales = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    const today = fecha || moment().format('DD/MM/YYYY');
 
+
+
+    const fechaActual = new Date();
+    const opciones = { timeZone: 'America/Mexico_City' };
+    
+    // Obtener los valores por separado y formatearlos
+    const dia = fechaActual.toLocaleDateString('es-MX', opciones).split('/')[0].padStart(2, '0');
+    const mes = fechaActual.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
+    const anio = fechaActual.toLocaleDateString('es-MX', opciones).split('/')[2];
+    
+    const today = fecha || `${dia}/${mes}/${anio}`;
+    
+ 
     const filter = {
       $or: [
         {
