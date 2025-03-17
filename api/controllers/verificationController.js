@@ -2,7 +2,7 @@ import VerificationCollection from '../models/VerificationCollection.js';
 import moment from 'moment';
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
 import { createTracking } from './TrakingOperacionesDeCasos.js';
-import { ajustarFechaInicio } from '../utilities/dates.js'
+import { obtenerFechaMexicoISO } from '../utilities/dates.js'
 function generarSecuencia(count) {
   let base = 15 + Math.floor(Math.floor(count / 999999)) * 1;
   let numero = count <= 999999 ? count + 1 : 1;
@@ -462,7 +462,7 @@ export const getReporteDiario = async (req, res) => {
 
       if (esAprobado && (caso.estadoDeCredito === 'Dispersado' || caso.estadoDeCredito === 'Aprobado')) {
         if (hora !== null) {
-          if (hora <= 10) resultado[tipo].aprobados10am += 1;
+          if (hora >= 7 && hora <= 10) resultado[tipo].aprobados10am += 1;
           if (hora > 10 && hora <= 12) resultado[tipo].aprobados12am += 1;
           if (hora > 12 && hora <= 14) resultado[tipo].aprobados14pm += 1;
           if (hora > 14 && hora <= 16) resultado[tipo].aprobados16pm += 1;
@@ -470,7 +470,7 @@ export const getReporteDiario = async (req, res) => {
         resultado[tipo].aprobadosTotal += 1;
       } else if (caso.estadoDeCredito === 'Reprobado') {
         if (hora !== null) {
-          if (hora <= 10) resultado[tipo].reprobados10am += 1;
+          if (hora >= 7  && hora <= 10) resultado[tipo].reprobados10am += 1;
           if (hora > 10 && hora <= 12) resultado[tipo].reprobados12am += 1;
           if (hora > 12 && hora <= 14) resultado[tipo].reprobados14pm += 1;
           if (hora > 14 && hora <= 16) resultado[tipo].reprobados16pm += 1;
@@ -561,7 +561,7 @@ export const getReporteDiarioTotales = async (req, res) => {
 
       if (["Aprobado", "Dispersado"].includes(caso.estadoDeCredito) && fechaTramitacion === fechaDispersion) {
         if (hora !== null) {
-          if (hora <= 10) totalesGenerales.aprobados10am += 1;
+          if (hora >= 7 && hora <= 10) totalesGenerales.aprobados10am += 1;
           if (hora > 10 && hora <= 12) totalesGenerales.aprobados12am += 1;
           if (hora > 12 && hora <= 14) totalesGenerales.aprobados14pm += 1;
           if (hora > 14 && hora <= 16) totalesGenerales.aprobados16pm += 1;
@@ -570,7 +570,7 @@ export const getReporteDiarioTotales = async (req, res) => {
       }
       else if (caso.estadoDeCredito === 'Reprobado') {
         if (hora !== null) {
-          if (hora <= 10) totalesGenerales.reprobados10am += 1;
+          if (hora >= 7 && hora <= 10) totalesGenerales.reprobados10am += 1;
           if (hora > 10 && hora <= 12) totalesGenerales.reprobados12am += 1;
           if (hora > 12 && hora <= 14) totalesGenerales.reprobados14pm += 1;
           if (hora > 14 && hora <= 16) totalesGenerales.reprobados16pm += 1;
@@ -704,9 +704,14 @@ export const getReporteCDiario = async (req, res) => {
         (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
         moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
       ) {
-        hora = new Date(caso.fechaDeReembolso).getHours();
+        console.log("fechas: ", caso.fechaDeReembolso)
+        // hora = new Date(caso.fechaDeReembolso).getHours();
+        hora = obtenerFechaMexicoISO(caso.fechaDeReembolso);
 
-        if (hora <= 10) {
+        console.log("hora: ", hora);
+        
+
+        if (hora >= 7 && hora <= 10) {
           resultado[tipo].pagos10am += 1;
           resultado[tipo].tasaRecuperacion10am += monto;
         }
@@ -733,7 +738,7 @@ export const getReporteCDiario = async (req, res) => {
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
         hora = new Date(caso.fechaRegistroComunicacion).getHours();
 
-        if (hora <= 10) resultado[tipo].ptp10am += 1;
+        if (hora >= 7 && hora <= 10) resultado[tipo].ptp10am += 1;
         if (hora > 10 && hora <= 12) resultado[tipo].ptp12am += 1;
         if (hora > 12 && hora <= 14) resultado[tipo].ptp2pm += 1;
         if (hora > 14 && hora <= 16) resultado[tipo].ptp4pm += 1;
@@ -904,7 +909,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
       ) {
         hora = new Date(caso.fechaDeReembolso).getHours();
 
-        if (hora <= 10) {
+        if (hora >= 7 && hora <= 10) {
           totales.pagos10am += 1;
           totales.tasaRecuperacion10am += monto;
         }
@@ -931,7 +936,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
         hora = new Date(caso.fechaRegistroComunicacion).getHours();
 
-        if (hora <= 10) totales.ptp10am += 1;
+        if (hora >= 7 && hora <= 10) totales.ptp10am += 1;
         if (hora > 10 && hora <= 12) totales.ptp12am += 1;
         if (hora > 12 && hora <= 14) totales.ptp2pm += 1;
         if (hora > 14 && hora <= 16) totales.ptp4pm += 1;
