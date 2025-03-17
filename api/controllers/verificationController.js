@@ -739,40 +739,33 @@ export const getReporteCDiario = async (req, res) => {
 
       const calcularTasa = (pagos) => (datos.casosTotales > 0 ? (pagos / datos.casosTotales) * 100 : 0);
 
-      // Acumulando las tasas de recuperación por hora
       let tasaAcumulada = 0;
 
-      // Tasa acumulada hasta las 10am
       if (datos.pagos10am > 0) {
         tasaAcumulada += calcularTasa(datos.pagos10am + datos.ptp10am);
       }
       datos.tasaRecuperacion10am = tasaAcumulada;
 
-      // Tasa acumulada hasta las 12pm
       if (datos.pagos12am > 0) {
         tasaAcumulada += calcularTasa(datos.pagos12am + datos.ptp12am);
       }
       datos.tasaRecuperacion12am = tasaAcumulada;
 
-      // Tasa acumulada hasta las 2pm
       if (datos.pagos2pm > 0) {
         tasaAcumulada += calcularTasa(datos.pagos2pm + datos.ptp2pm);
       }
       datos.tasaRecuperacion2pm = tasaAcumulada;
 
-      // Tasa acumulada hasta las 4pm
       if (datos.pagos4pm) {
         tasaAcumulada += calcularTasa(datos.pagos4pm + datos.ptp4pm);
       }
       datos.tasaRecuperacion4pm = tasaAcumulada;
 
-      // Tasa acumulada hasta las 6pm
       if (datos.pagos6pm) {
         tasaAcumulada += calcularTasa(datos.pagos6pm + datos.ptp6pm);
       }
       datos.tasaRecuperacion6pm = tasaAcumulada;
 
-      // Tasa acumulada total
       datos.tasaRecuperacionTotal = tasaAcumulada;
     });
 
