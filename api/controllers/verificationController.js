@@ -453,9 +453,9 @@ export const getReporteDiario = async (req, res) => {
         : null;
 
       const hora = caso.estadoDeCredito === 'Reprobado'
-        ? new Date(caso.fechaDeTramitacionDelCaso).getHours()
+        ? obtenerFechaMexicoISO(caso.fechaDeTramitacionDelCaso)
         : caso.fechaDeDispersion
-          ? new Date(caso.fechaDeDispersion).getHours()
+          ? obtenerFechaMexicoISO(caso.fechaDeDispersion)
           : null;
 
       const esAprobado = fechaTramitacion === fechaDispersion;
@@ -554,9 +554,9 @@ export const getReporteDiarioTotales = async (req, res) => {
 
       const hora =
         caso.estadoDeCredito === 'Reprobado'
-          ? new Date(caso.fechaDeTramitacionDelCaso).getHours()
+          ? obtenerFechaMexicoISO(caso.fechaDeTramitacionDelCaso)
           : caso.fechaDeDispersion && fechaTramitacion === fechaDispersion
-            ? new Date(caso.fechaDeDispersion).getHours()
+            ? obtenerFechaMexicoISO(caso.fechaDeDispersion)
             : null;
 
       if (["Aprobado", "Dispersado"].includes(caso.estadoDeCredito) && fechaTramitacion === fechaDispersion) {
@@ -704,11 +704,10 @@ export const getReporteCDiario = async (req, res) => {
         (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
         moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
       ) {
-        console.log("fechas: ", caso.fechaDeReembolso)
         // hora = new Date(caso.fechaDeReembolso).getHours();
         hora = obtenerFechaMexicoISO(caso.fechaDeReembolso);
 
-        console.log("hora: ", hora);
+        // console.log("hora: ", hora);
         
 
         if (hora >= 7 && hora <= 10) {
@@ -736,7 +735,7 @@ export const getReporteCDiario = async (req, res) => {
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = new Date(caso.fechaRegistroComunicacion).getHours();
+        hora = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
 
         if (hora >= 7 && hora <= 10) resultado[tipo].ptp10am += 1;
         if (hora > 10 && hora <= 12) resultado[tipo].ptp12am += 1;
@@ -907,7 +906,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
         (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
         moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
       ) {
-        hora = new Date(caso.fechaDeReembolso).getHours();
+        hora = obtenerFechaMexicoISO(caso.fechaDeReembolso);
 
         if (hora >= 7 && hora <= 10) {
           totales.pagos10am += 1;
@@ -934,7 +933,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = new Date(caso.fechaRegistroComunicacion).getHours();
+        hora = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
 
         if (hora >= 7 && hora <= 10) totales.ptp10am += 1;
         if (hora > 10 && hora <= 12) totales.ptp12am += 1;
