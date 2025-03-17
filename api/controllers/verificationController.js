@@ -613,7 +613,7 @@ export const getReporteCDiario = async (req, res) => {
               },
             },
             {
-              estadoDeCredito: { $in: ['Pagado', 'Pagado con Extensión'] },
+              estadoDeCredito: { $in: ['Pagado', 'Pagado con Extensión', 'Dispersado'] },
             },
           ],
         },
@@ -660,7 +660,7 @@ export const getReporteCDiario = async (req, res) => {
     }
 
     const resultado = {};
-
+    
     casosDelDia.forEach((caso) => {
       const tipo = caso.cuentaCobrador || 'Desconocido';
       if (!resultado[tipo]) {
@@ -682,8 +682,11 @@ export const getReporteCDiario = async (req, res) => {
           tasaRecuperacion6pm: 0,
           pagosTotal: 0,
           tasaRecuperacionTotal: 0,
+          casosTotales: 0,
         };
       }
+
+      resultado[tipo].casosTotales += 1
 
       let hora;
       const monto = parseFloat(caso.valorSolicitado || 0);
