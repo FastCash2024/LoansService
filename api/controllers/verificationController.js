@@ -1,5 +1,6 @@
-import VerificationCollection from '../models/VerificationCollection.js';
 import moment from 'moment';
+import VerificationCollection from '../models/VerificationCollection.js';
+import { VerificationCollectionBackup } from '../models/verificationCollectionBackupSchema.js'; '../models/verificationCollectionBackupSchema.js';
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
 import { createTracking } from './TrakingOperacionesDeCasos.js';
 import { obtenerFechaMexicoISO } from '../utilities/dates.js'
@@ -398,26 +399,45 @@ export const getReporteDiario = async (req, res) => {
     const today = fecha || moment().format('DD/MM/YYYY');
 
     // obtener los casos del dia
-    const filter = {
-      $expr: {
-        $eq: [
-          {
-            $dateToString: {
-              format: '%d/%m/%Y',
-              date: { $toDate: '$fechaDeTramitacionDelCaso' },
+    let filter = {};
+    if (fecha) {
+      filter = {
+        $expr: {
+          $eq: [
+            {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $toDate: "$fechaBackoup" },
+              },
             },
-          },
-          today,
-        ],
-      },
-    };
+            today,
+          ],
+        },
+      };
+    } else {
+
+      filter = {
+        $expr: {
+          $eq: [
+            {
+              $dateToString: {
+                format: '%d/%m/%Y',
+                date: { $toDate: '$fechaDeTramitacionDelCaso' },
+              },
+            },
+            today,
+          ],
+        },
+      };
+    }
 
     if (estadoDeCredito) {
       const palabras = estadoDeCredito.split(/[,?]/).map((palabra) => palabra.trim());
       filter.estadoDeCredito = { $in: palabras };
     }
 
-    const casosDelDia = await VerificationCollection.find(filter);
+    const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
+    const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
       return res.json({
@@ -505,26 +525,44 @@ export const getReporteDiarioTotales = async (req, res) => {
     const { fecha, estadoDeCredito } = req.query;
     const today = fecha || moment().format('DD/MM/YYYY');
 
-    const filter = {
-      $expr: {
-        $eq: [
-          {
-            $dateToString: {
-              format: '%d/%m/%Y',
-              date: { $toDate: '$fechaDeTramitacionDelCaso' },
+    let filter = {}
+    if (fecha) {
+      filter = {
+        $expr: {
+          $eq: [
+            {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $toDate: "$fechaBackoup" },
+              },
             },
-          },
-          today,
-        ],
-      },
-    };
+            today,
+          ],
+        },
+      };
+    } else {
+      filter = {
+        $expr: {
+          $eq: [
+            {
+              $dateToString: {
+                format: '%d/%m/%Y',
+                date: { $toDate: '$fechaDeTramitacionDelCaso' },
+              },
+            },
+            today,
+          ],
+        },
+      };
+    }
 
     if (estadoDeCredito) {
       const palabras = estadoDeCredito.split(/[,?]/).map((palabra) => palabra.trim());
       filter.estadoDeCredito = { $in: palabras };
     }
 
-    const casosDelDia = await VerificationCollection.find(filter);
+    const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
+    const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
       return res.json({
@@ -598,7 +636,7 @@ export const getReporteDiarioTotales = async (req, res) => {
     totalesGenerales.reprobados12am += totalesGenerales.reprobados10am;
     totalesGenerales.reprobados14pm += totalesGenerales.reprobados12am;
     totalesGenerales.reprobados16pm += totalesGenerales.reprobados14pm;
-    
+
     totalesGenerales.totalCasosConAsesor = totalCasosConAsesor;
     totalesGenerales.totalCasosConAsesorErrados = totalCasosConAsesorErrados;
 
@@ -622,6 +660,10 @@ export const getReporteCDiario = async (req, res) => {
     const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
 
     const today = fecha || `${dia}/${mes}/${anio}`;
+
+    console.log("fecha: ", today);
+
+    const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
 
     const filter = {
       $or: [
@@ -668,7 +710,7 @@ export const getReporteCDiario = async (req, res) => {
       ],
     };
 
-    const casosDelDia = await VerificationCollection.find(filter);
+    const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
       return res.json({
@@ -741,7 +783,7 @@ export const getReporteCDiario = async (req, res) => {
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-       
+
         if (horaComunicacion >= 7 && horaComunicacion <= 10) {
           resultado[tipo].ptp10am += 1;
         }
@@ -807,8 +849,9 @@ export const getReporteCDiarioTotales = async (req, res) => {
 
     const today = fecha || `${dia}/${mes}/${anio}`;
 
+    const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
 
-    const filter = {
+    let filter = {
       $or: [
         {
           $and: [
@@ -853,7 +896,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
       ],
     };
 
-    const casosDelDia = await VerificationCollection.find(filter);
+    const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
       return res.json({
