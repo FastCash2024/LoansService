@@ -462,23 +462,35 @@ export const getReporteDiario = async (req, res) => {
 
       if (esAprobado && (caso.estadoDeCredito === 'Dispersado' || caso.estadoDeCredito === 'Aprobado')) {
         if (hora !== null) {
-          if (hora >= 7 && hora <= 10) resultado[tipo].aprobados10am += 1;
-          if (hora > 10 && hora <= 12) resultado[tipo].aprobados12am += 1;
-          if (hora > 12 && hora <= 14) resultado[tipo].aprobados14pm += 1;
-          if (hora > 14 && hora <= 16) resultado[tipo].aprobados16pm += 1;
+          if (hora >= 7 && hora < 10) resultado[tipo].aprobados10am += 1;
+          if (hora >= 10 && hora < 12) resultado[tipo].aprobados12am += 1;
+          if (hora >= 12 && hora < 14) resultado[tipo].aprobados14pm += 1;
+          if (hora >= 14 && hora < 16) resultado[tipo].aprobados16pm += 1;
         }
         resultado[tipo].aprobadosTotal += 1;
-      } else if (caso.estadoDeCredito === 'Reprobado') {
+      }
+      else if (caso.estadoDeCredito === 'Reprobado') {
         if (hora !== null) {
-          if (hora >= 7 && hora <= 10) resultado[tipo].reprobados10am += 1;
-          if (hora > 10 && hora <= 12) resultado[tipo].reprobados12am += 1;
-          if (hora > 12 && hora <= 14) resultado[tipo].reprobados14pm += 1;
-          if (hora > 14 && hora <= 16) resultado[tipo].reprobados16pm += 1;
+          if (hora >= 7 && hora < 10) resultado[tipo].reprobados10am += 1;
+          if (hora >= 10 && hora < 12) resultado[tipo].reprobados12am += 1;
+          if (hora >= 12 && hora < 14) resultado[tipo].reprobados14pm += 1;
+          if (hora >= 14 && hora < 16) resultado[tipo].reprobados16pm += 1;
         }
         resultado[tipo].reprobadosTotal += 1;
-      } else if (!["Dispersado", "Aprobado", "Pendiente"].includes(caso.estadoDeCredito)) {
+      }
+      else if (!["Dispersado", "Aprobado", "Pendiente"].includes(caso.estadoDeCredito)) {
         resultado[tipo].otrosTotal += 1;
       }
+    });
+
+    Object.keys(resultado).forEach(tipo => {
+      resultado[tipo].aprobados12am += resultado[tipo].aprobados10am;
+      resultado[tipo].aprobados14pm += resultado[tipo].aprobados12am;
+      resultado[tipo].aprobados16pm += resultado[tipo].aprobados14pm;
+
+      resultado[tipo].reprobados12am += resultado[tipo].reprobados10am;
+      resultado[tipo].reprobados14pm += resultado[tipo].reprobados12am;
+      resultado[tipo].reprobados16pm += resultado[tipo].reprobados14pm;
     });
 
     res.json({ data: resultado });
@@ -579,7 +591,14 @@ export const getReporteDiarioTotales = async (req, res) => {
       }
     });
 
+    totalesGenerales.aprobados12am += totalesGenerales.aprobados10am;
+    totalesGenerales.aprobados14pm += totalesGenerales.aprobados12am;
+    totalesGenerales.aprobados16pm += totalesGenerales.aprobados14pm;
 
+    totalesGenerales.reprobados12am += totalesGenerales.reprobados10am;
+    totalesGenerales.reprobados14pm += totalesGenerales.reprobados12am;
+    totalesGenerales.reprobados16pm += totalesGenerales.reprobados14pm;
+    
     totalesGenerales.totalCasosConAsesor = totalCasosConAsesor;
     totalesGenerales.totalCasosConAsesorErrados = totalCasosConAsesorErrados;
 
@@ -682,53 +701,60 @@ export const getReporteCDiario = async (req, res) => {
           pagosTotal: 0,
           tasaRecuperacionTotal: 0,
           casosTotales: 0,
+          casosFueraDeHorario: 0, // Nuevo campo
         };
       }
 
-      resultado[tipo].casosTotales += 1;
+      const horaCredito = obtenerFechaMexicoISO(caso.fechaDeReembolso);
+      const horaComunicacion = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
 
-      let hora;
-      if (
-        (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
-        moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
-      ) {
-        hora = obtenerFechaMexicoISO(caso.fechaDeReembolso);
-
-        if (hora >= 7 && hora <= 10) {
-          resultado[tipo].pagos10am += 1;
-        }
-        if (hora > 10 && hora <= 12) {
-          resultado[tipo].pagos12am += 1;
-        }
-        if (hora > 12 && hora <= 14) {
-          resultado[tipo].pagos2pm += 1;
-        }
-        if (hora > 14 && hora <= 16) {
-          resultado[tipo].pagos4pm += 1;
-        }
-        if (hora > 16 && hora <= 18) {
-          resultado[tipo].pagos6pm += 1;
+      if (['Dispersado', 'Pagado', 'Pagado con Extensión'].includes(caso.estadoDeCredito)) {
+        if (horaCredito >= 7 && horaCredito < 24) {
+          resultado[tipo].casosTotales++;
+        } else {
+          resultado[tipo].casosFueraDeHorario++;
         }
 
-        resultado[tipo].pagosTotal += 1;
+        if (
+          (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
+          moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
+        ) {
+
+          if (horaCredito >= 7 && horaCredito <= 10) {
+            resultado[tipo].pagos10am += 1;
+          }
+          if (horaCredito > 10 && horaCredito <= 12) {
+            resultado[tipo].pagos12am += 1;
+          }
+          if (horaCredito > 12 && horaCredito <= 14) {
+            resultado[tipo].pagos2pm += 1;
+          }
+          if (horaCredito > 14 && horaCredito <= 16) {
+            resultado[tipo].pagos4pm += 1;
+          }
+          if (horaCredito > 16 && horaCredito < 24) {
+            resultado[tipo].pagos6pm += 1;
+          }
+
+          resultado[tipo].pagosTotal += 1;
+        }
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
-
-        if (hora >= 7 && hora <= 10) {
+       
+        if (horaComunicacion >= 7 && horaComunicacion <= 10) {
           resultado[tipo].ptp10am += 1;
         }
-        if (hora > 10 && hora <= 12) {
+        if (horaComunicacion > 10 && horaComunicacion <= 12) {
           resultado[tipo].ptp12am += 1;
         }
-        if (hora > 12 && hora <= 14) {
+        if (horaComunicacion > 12 && horaComunicacion <= 14) {
           resultado[tipo].ptp2pm += 1;
         }
-        if (hora > 14 && hora <= 16) {
+        if (horaComunicacion > 14 && horaComunicacion <= 16) {
           resultado[tipo].ptp4pm += 1;
         }
-        if (hora > 16 && hora <= 18) {
+        if (horaComunicacion > 16 && horaComunicacion < 24) {
           resultado[tipo].ptp6pm += 1;
         }
       }
@@ -739,34 +765,25 @@ export const getReporteCDiario = async (req, res) => {
 
       const calcularTasa = (pagos) => (datos.casosTotales > 0 ? (pagos / datos.casosTotales) * 100 : 0);
 
-      let tasaAcumulada = 0;
+      datos.pagos12am += datos.pagos10am;
+      datos.ptp12am += datos.ptp10am;
 
-      if (datos.pagos10am > 0) {
-        tasaAcumulada += calcularTasa(datos.pagos10am + datos.ptp10am);
-      }
-      datos.tasaRecuperacion10am = tasaAcumulada;
+      datos.pagos2pm += datos.pagos12am;
+      datos.ptp2pm += datos.ptp12am;
 
-      if (datos.pagos12am > 0) {
-        tasaAcumulada += calcularTasa(datos.pagos12am + datos.ptp12am);
-      }
-      datos.tasaRecuperacion12am = tasaAcumulada;
+      datos.pagos4pm += datos.pagos2pm;
+      datos.ptp4pm += datos.ptp2pm;
 
-      if (datos.pagos2pm > 0) {
-        tasaAcumulada += calcularTasa(datos.pagos2pm + datos.ptp2pm);
-      }
-      datos.tasaRecuperacion2pm = tasaAcumulada;
+      datos.pagos6pm += datos.pagos4pm;
+      datos.ptp6pm += datos.ptp4pm;
 
-      if (datos.pagos4pm) {
-        tasaAcumulada += calcularTasa(datos.pagos4pm + datos.ptp4pm);
-      }
-      datos.tasaRecuperacion4pm = tasaAcumulada;
+      datos.tasaRecuperacion10am = calcularTasa(datos.pagos10am);
+      datos.tasaRecuperacion12am = calcularTasa(datos.pagos12am);
+      datos.tasaRecuperacion2pm = calcularTasa(datos.pagos2pm);
+      datos.tasaRecuperacion4pm = calcularTasa(datos.pagos4pm);
+      datos.tasaRecuperacion6pm = calcularTasa(datos.pagos6pm);
 
-      if (datos.pagos6pm) {
-        tasaAcumulada += calcularTasa(datos.pagos6pm + datos.ptp6pm);
-      }
-      datos.tasaRecuperacion6pm = tasaAcumulada;
-
-      datos.tasaRecuperacionTotal = tasaAcumulada;
+      datos.tasaRecuperacionTotal = calcularTasa(datos.pagosTotal);
     });
 
     res.json({ data: resultado });
@@ -847,129 +864,69 @@ export const getReporteCDiarioTotales = async (req, res) => {
 
     // Inicializar totales
     let totales = {
-      pagos10am: 0,
-      ptp10am: 0,
-      tasaRecuperacion10am: 0,
-      pagos12am: 0,
-      ptp12am: 0,
-      tasaRecuperacion12am: 0,
-      pagos2pm: 0,
-      ptp2pm: 0,
-      tasaRecuperacion2pm: 0,
-      pagos4pm: 0,
-      ptp4pm: 0,
-      tasaRecuperacion4pm: 0,
-      pagos6pm: 0,
-      ptp6pm: 0,
-      tasaRecuperacion6pm: 0,
-      pagosTotal: 0,
-      tasaRecuperacionTotal: 0,
+      pagos10am: 0, ptp10am: 0, tasaRecuperacion10am: 0,
+      pagos12am: 0, ptp12am: 0, tasaRecuperacion12am: 0,
+      pagos2pm: 0, ptp2pm: 0, tasaRecuperacion2pm: 0,
+      pagos4pm: 0, ptp4pm: 0, tasaRecuperacion4pm: 0,
+      pagos6pm: 0, ptp6pm: 0, tasaRecuperacion6pm: 0,
+      pagosTotal: 0, tasaRecuperacionTotal: 0, casosFueraDeHorario: 0,
     };
 
-    // const casosPorSegmento = { D0: [], D1: [], D2: [], S1: [], S2: [] };
-    // const fechaMexico = new Date().toLocaleString('en-US', {
-    //   timeZone: 'America/Mexico_City', // Zona horaria de Ciudad de México
-    //   weekday: 'short',
-    //   year: 'numeric',
-    //   month: 'short',
-    //   day: 'numeric',
-    //   hour: '2-digit',
-    //   minute: '2-digit',
-    //   second: '2-digit',
-    //   hour12: false,
-    // });
-
-    // const fechaActual = new Date(fechaMexico).toString();
-
-    // casosDelDia.forEach(caso => {
-    //   const fechaTramitacion = ajustarFechaInicio(caso.fechaDeTramitacionDelCaso)
-
-    //   const diferenciaDiasTramitacion = Math.round((new Date(fechaTramitacion) - fechaActual) * (-1) / (1000 * 60 * 60 * 24));
-
-    //   // Validación: Si la fecha de tramitación es hoy, no se asigna
-    //   if (diferenciaDiasTramitacion === 0) {
-    //     console.log(`El caso ${caso.numeroDePrestamo} es reciente y no puede asignarse.`);
-    //     return;
-    //   }
-
-    //   // Validación: Solo se asignan casos cuya fecha de tramitación tenga al menos 5 días
-    //   if (diferenciaDiasTramitacion < 5) {
-    //     console.log(`El caso ${caso.numeroDePrestamo} aún no puede asignarse. Se necesita esperar ${5 - diferenciaDiasTramitacion} días más.`);
-    //     return;
-    //   }
-
-
-    //   if (diferenciaDiasTramitacion === 7) {
-    //     casosPorSegmento.D0.push(caso);
-    //   } else if (diferenciaDiasTramitacion === 6) {
-    //     casosPorSegmento.D1.push(caso);
-    //   } else if (diferenciaDiasTramitacion === 5) {
-    //     casosPorSegmento.D2.push(caso);
-    //   } else if (diferenciaDiasTramitacion > 7 && diferenciaDiasTramitacion < 15) {
-    //     casosPorSegmento.S1.push(caso);
-    //   } else if (diferenciaDiasTramitacion > 14 && diferenciaDiasTramitacion <= 22) {
-    //     casosPorSegmento.S2.push(caso);
-    //   }
-    // });
-
-    // console.log(casosPorSegmento)
-
-
-
-    const casosConAsesor = casosDelDia.filter(
-      (caso) => caso.cuentaCobrador && ["Dispersado", "Pagado", "Pagado con Extensión"].includes(caso.estadoDeCredito)
-    );
-
-    const totalCasosConAsesor = casosConAsesor.length;
-
-    let pagosHastaAhora = 0;
+    let totalCasosConAsesor = 0;
 
     casosDelDia.forEach((caso) => {
-      let hora;
+      const horaCredito = obtenerFechaMexicoISO(caso.fechaDeReembolso);
+      const horaComunicacion = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
 
-      if (
-        (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
-        moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
-      ) {
-        hora = obtenerFechaMexicoISO(caso.fechaDeReembolso);
+      if (['Dispersado', 'Pagado', 'Pagado con Extensión'].includes(caso.estadoDeCredito)) {
+        if (horaCredito >= 7 && horaCredito < 24) {
+          totalCasosConAsesor++;
+        } else {
+          totales.casosFueraDeHorario++;
+        }
 
-        if (hora >= 7 && hora <= 10) {
-          totales.pagos10am += 1;
+        if ((['Pagado', 'Pagado con Extensión'].includes(caso.estadoDeCredito)) &&
+          moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')) {
+          if (horaCredito >= 7 && horaCredito < 10) totales.pagos10am++;
+          if (horaCredito >= 10 && horaCredito < 12) totales.pagos12am++;
+          if (horaCredito >= 12 && horaCredito < 14) totales.pagos2pm++;
+          if (horaCredito >= 14 && horaCredito < 16) totales.pagos4pm++;
+          if (horaCredito >= 16 && horaCredito < 18) totales.pagos6pm++;
+
+          totales.pagosTotal++;
         }
-        if (hora > 10 && hora <= 12) {
-          totales.pagos12am += 1;
-        }
-        if (hora > 12 && hora <= 14) {
-          totales.pagos2pm += 1;
-        }
-        if (hora > 14 && hora <= 16) {
-          totales.pagos4pm += 1;
-        }
-        if (hora > 16 && hora <= 18) {
-          totales.pagos6pm += 1;
-        }
-        totales.pagosTotal += 1;
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-        hora = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
-
-        if (hora >= 7 && hora <= 10) totales.ptp10am += 1;
-        if (hora > 10 && hora <= 12) totales.ptp12am += 1;
-        if (hora > 12 && hora <= 14) totales.ptp2pm += 1;
-        if (hora > 14 && hora <= 16) totales.ptp4pm += 1;
-        if (hora > 16 && hora <= 18) totales.ptp6pm += 1;
+        if (horaComunicacion >= 7 && horaComunicacion < 10) totales.ptp10am++;
+        if (horaComunicacion >= 10 && horaComunicacion < 12) totales.ptp12am++;
+        if (horaComunicacion >= 12 && horaComunicacion < 14) totales.ptp2pm++;
+        if (horaComunicacion >= 14 && horaComunicacion < 16) totales.ptp4pm++;
+        if (horaComunicacion >= 16 && horaComunicacion < 18) totales.ptp6pm++;
       }
     });
 
-    if (totalCasosConAsesor > 0) {
-      totales.tasaRecuperacion10am = (totales.pagos10am / totalCasosConAsesor) * 100;
-      totales.tasaRecuperacion12am = ((totales.pagos10am + totales.pagos12am) / totalCasosConAsesor) * 100;
-      totales.tasaRecuperacion2pm = ((totales.pagos10am + totales.pagos12am + totales.pagos2pm) / totalCasosConAsesor) * 100;
-      totales.tasaRecuperacion4pm = ((totales.pagos10am + totales.pagos12am + totales.pagos2pm + totales.pagos4pm) / totalCasosConAsesor) * 100;
-      totales.tasaRecuperacion6pm = ((totales.pagos10am + totales.pagos12am + totales.pagos2pm + totales.pagos4pm + totales.pagos6pm) / totalCasosConAsesor) * 100;
-      totales.tasaRecuperacionTotal = (totales.pagosTotal / totalCasosConAsesor) * 100;
-    }
+    totales.pagos12am += totales.pagos10am;
+    totales.ptp12am += totales.ptp10am;
+
+    totales.pagos2pm += totales.pagos12am;
+    totales.ptp2pm += totales.ptp12am;
+
+    totales.pagos4pm += totales.pagos2pm;
+    totales.ptp4pm += totales.ptp2pm;
+
+    totales.pagos6pm += totales.pagos4pm;
+    totales.ptp6pm += totales.ptp4pm;
+
+    // Calcular tasas de recuperacion
+    const calcularTasa = (pagos) => (totalCasosConAsesor > 0 ? (pagos / totalCasosConAsesor) * 100 : 0);
+
+    totales.tasaRecuperacion10am = calcularTasa(totales.pagos10am);
+    totales.tasaRecuperacion12am = calcularTasa(totales.pagos12am);
+    totales.tasaRecuperacion2pm = calcularTasa(totales.pagos2pm);
+    totales.tasaRecuperacion4pm = calcularTasa(totales.pagos4pm);
+    totales.tasaRecuperacion6pm = calcularTasa(totales.pagos6pm);
+    totales.tasaRecuperacionTotal = calcularTasa(totales.pagosTotal);
 
     totales.totalesConAsesor = totalCasosConAsesor;
 
@@ -980,7 +937,6 @@ export const getReporteCDiarioTotales = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener los datos' });
   }
 };
-
 
 export const getUpdateSTP = async (req, res) => {
   try {
