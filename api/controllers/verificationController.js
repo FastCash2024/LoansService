@@ -396,7 +396,16 @@ export const getCustomerFlow = async (req, res) => {
 export const getReporteDiario = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    const today = fecha || moment().format('DD/MM/YYYY');
+
+    const fechaHoy = new Date();
+    const opciones = { timeZone: 'America/Mexico_City' };
+
+    // Obtener los valores por separado y formatearlos
+    const dia = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[0].padStart(2, '0');
+    const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
+    const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
+
+    const today = fecha || `${anio}-${mes}-${dia}`;
 
     // obtener los casos del dia
     let filter = {};
@@ -421,7 +430,7 @@ export const getReporteDiario = async (req, res) => {
           $eq: [
             {
               $dateToString: {
-                format: '%d/%m/%Y',
+                format: '%Y-%m-%d',
                 date: { $toDate: '$fechaDeTramitacionDelCaso' },
               },
             },
@@ -523,7 +532,15 @@ export const getReporteDiario = async (req, res) => {
 export const getReporteDiarioTotales = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    const today = fecha || moment().format('DD/MM/YYYY');
+    
+    const fechaHoy = new Date();
+    const opciones = { timeZone: 'America/Mexico_City' };
+    // Obtener los valores por separado y formatearlos
+    const dia = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[0].padStart(2, '0');
+    const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
+    const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
+
+    const today = fecha || `${anio}-${mes}-${dia}`;
 
     let filter = {}
     if (fecha) {
@@ -546,7 +563,7 @@ export const getReporteDiarioTotales = async (req, res) => {
           $eq: [
             {
               $dateToString: {
-                format: '%d/%m/%Y',
+                format: '%Y-%m-%d',
                 date: { $toDate: '$fechaDeTramitacionDelCaso' },
               },
             },
@@ -659,7 +676,7 @@ export const getReporteCDiario = async (req, res) => {
     const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
     const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
 
-    const today = fecha || `${dia}/${mes}/${anio}`;
+    const today = fecha || `${anio}-${mes}-${dia}`;
 
     console.log("fecha: ", today);
 
@@ -674,7 +691,7 @@ export const getReporteCDiario = async (req, res) => {
                 $eq: [
                   {
                     $dateToString: {
-                      format: '%d/%m/%Y',
+                      format: '%Y-%m-%d',
                       date: { $toDate: '$fechaDeTramitacionDeCobro' },
                     },
                   },
@@ -694,7 +711,7 @@ export const getReporteCDiario = async (req, res) => {
                 $eq: [
                   {
                     $dateToString: {
-                      format: '%d/%m/%Y',
+                      format: '%Y-%m-%d',
                       date: { $toDate: '$fechaRegistroComunicacion' },
                     },
                   },
@@ -847,7 +864,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
     const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
     const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
 
-    const today = fecha || `${dia}/${mes}/${anio}`;
+    const today = fecha || `${anio}-${mes}-/${dia}`;
 
     const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
 
@@ -860,7 +877,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
                 $eq: [
                   {
                     $dateToString: {
-                      format: '%d/%m/%Y',
+                      format: '%Y-%m-%d',
                       date: { $toDate: '$fechaDeTramitacionDeCobro' },
                     },
                   },
@@ -880,7 +897,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
                 $eq: [
                   {
                     $dateToString: {
-                      format: '%d/%m/%Y',
+                      format: '%Y-%m-%d',
                       date: { $toDate: '$fechaRegistroComunicacion' },
                     },
                   },
