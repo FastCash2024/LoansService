@@ -1038,7 +1038,7 @@ export const reporteComision = async (req, res) => {
       return res.status(400).json({ error: "El parámetro nombreUsuario es obligatorio" });
     }
 
-    const resultados = await VerificationCollection.aggregate([
+    const resultados = await VerificationCollectionBackup.aggregate([
       { $unwind: "$historialDeAsesores" },
       { $match: { "historialDeAsesores.cuentaPersonal": nombreUsuario } },
       {
