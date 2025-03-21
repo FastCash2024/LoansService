@@ -343,7 +343,7 @@ export const getCustomerFlow = async (req, res) => {
       fechaDeReembolso: { $regex: fechaFormateada, $options: "i" }
     };
 
-    const result = await VerificationCollection.aggregate([
+    const result = await VerificationCollectionBackup.aggregate([
       { $match: filter },
       {
         $group: {
