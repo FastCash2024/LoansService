@@ -12,6 +12,7 @@ import verificationRoutes from './api/routes/verificationRoutes.js';
 import accessRoutes from './api/routes/accessRoutes.js';
 import counterRoutes from './api/routes/counterRoutes.js';
 import clabesRoutes from './api/routes/clabesRoutes.js';
+import asignationRoutes from './api/routes/asignationRoutes.js';
 
 import { errorHandler } from './api/middleware/errorHandler.js';
 
@@ -36,6 +37,8 @@ app.use('/api/loans/users', accessRoutes); // CasesDB ---> distribuidor de casos
 app.use('/api/loans/counter', counterRoutes); // CasesDB ---> contador de numerosDeCaso
 //Contador de clabes routes
 app.use('/api/loans/clabes', clabesRoutes); // CasesDB ---> distribuidor de casos RENOMBRAR
+// asigncion de casos 
+app.use('/api/loans/asignaciones', asignationRoutes);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

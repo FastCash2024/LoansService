@@ -692,7 +692,13 @@ export const getReporteCDiario = async (req, res) => {
                   {
                     $dateToString: {
                       format: '%Y-%m-%d',
-                      date: { $toDate: '$fechaDeTramitacionDeCobro' },
+                      date: {
+                        $dateFromString: {
+                          dateString: '$fechaDeTramitacionDeCobro',
+                          onError: null,
+                          onNull: null
+                        },
+                      },
                     },
                   },
                   today,
@@ -712,7 +718,13 @@ export const getReporteCDiario = async (req, res) => {
                   {
                     $dateToString: {
                       format: '%Y-%m-%d',
-                      date: { $toDate: '$fechaRegistroComunicacion' },
+                      date: {
+                        $dateFromString: {
+                          dateString: '$fechaRegistroComunicacion',
+                          onError: null,
+                          onNull: null
+                        },
+                      },
                     },
                   },
                   today,
@@ -726,7 +738,8 @@ export const getReporteCDiario = async (req, res) => {
         },
       ],
     };
-
+    
+    
     const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
@@ -764,43 +777,44 @@ export const getReporteCDiario = async (req, res) => {
         };
       }
 
-      const horaCredito = obtenerFechaMexicoISO(caso.fechaDeReembolso);
+      const horaCredito = caso.fechaDeReembolso ? obtenerFechaMexicoISO(caso.fechaDeReembolso) : null;
       const horaComunicacion = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
 
       if (['Dispersado', 'Pagado', 'Pagado con Extensión'].includes(caso.estadoDeCredito)) {
-        if (horaCredito >= 7 && horaCredito < 24) {
-          resultado[tipo].casosTotales++;
-        } else {
-          resultado[tipo].casosFueraDeHorario++;
-        }
-
-        if (
-          (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
-          moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
-        ) {
-
-          if (horaCredito >= 7 && horaCredito <= 10) {
-            resultado[tipo].pagos10am += 1;
-          }
-          if (horaCredito > 10 && horaCredito <= 12) {
-            resultado[tipo].pagos12am += 1;
-          }
-          if (horaCredito > 12 && horaCredito <= 14) {
-            resultado[tipo].pagos2pm += 1;
-          }
-          if (horaCredito > 14 && horaCredito <= 16) {
-            resultado[tipo].pagos4pm += 1;
-          }
-          if (horaCredito > 16 && horaCredito < 24) {
-            resultado[tipo].pagos6pm += 1;
+        if (horaCredito !== null) {
+          if (horaCredito >= 7 && horaCredito < 24) {
+            resultado[tipo].casosTotales++;
+          } else {
+            resultado[tipo].casosFueraDeHorario++;
           }
 
-          resultado[tipo].pagosTotal += 1;
+          if (
+            (caso.estadoDeCredito === 'Pagado' || caso.estadoDeCredito === 'Pagado con Extensión') &&
+            moment(caso.fechaDeTramitacionDeCobro).format('DD/MM/YYYY') === moment(caso.fechaDeReembolso).format('DD/MM/YYYY')
+          ) {
+
+            if (horaCredito >= 7 && horaCredito <= 10) {
+              resultado[tipo].pagos10am += 1;
+            }
+            if (horaCredito > 10 && horaCredito <= 12) {
+              resultado[tipo].pagos12am += 1;
+            }
+            if (horaCredito > 12 && horaCredito <= 14) {
+              resultado[tipo].pagos2pm += 1;
+            }
+            if (horaCredito > 14 && horaCredito <= 16) {
+              resultado[tipo].pagos4pm += 1;
+            }
+            if (horaCredito > 16 && horaCredito < 24) {
+              resultado[tipo].pagos6pm += 1;
+            }
+
+            resultado[tipo].pagosTotal += 1;
+          }
         }
       }
 
       if (caso.estadoDeComunicacion === 'Pagará pronto') {
-
         if (horaComunicacion >= 7 && horaComunicacion <= 10) {
           resultado[tipo].ptp10am += 1;
         }
@@ -851,6 +865,7 @@ export const getReporteCDiario = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener los datos' });
   }
 };
+
 
 export const getReporteCDiarioTotales = async (req, res) => {
   try {
