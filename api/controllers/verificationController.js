@@ -4,6 +4,7 @@ import { VerificationCollectionBackup } from '../models/verificationCollectionBa
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
 import { createTracking } from './TrakingOperacionesDeCasos.js';
 import { obtenerFechaMexicoISO } from '../utilities/dates.js'
+
 function generarSecuencia(count) {
   let base = 15 + Math.floor(Math.floor(count / 999999)) * 1;
   let numero = count <= 999999 ? count + 1 : 1;
@@ -337,11 +338,26 @@ export const getCustomerFlow = async (req, res) => {
       return res.status(400).json({ message: "Faltan parámetros requeridos" });
     }
 
-    const fechaFormateada = new Date(fechaDeReembolso).toISOString().split('T')[0];
+    let filter = {};
 
-    const filter = {
-      fechaDeReembolso: { $regex: fechaFormateada, $options: "i" }
-    };
+    // Comprobamos si fechaDeReembolso es un rango de fechas o solo una fecha
+    const fechas = fechaDeReembolso.split(",").map(f => f.trim());
+
+    if (fechas.length === 2) {
+      // Si hay un rango de fechas, usamos ambas fechas
+      const fechaInicio = new Date(fechas[0]).toISOString();
+      const fechaFin = new Date(fechas[1]).toISOString();
+
+      filter.fechaDeReembolso = {
+        $gte: fechaInicio,
+        $lte: fechaFin,
+      };
+    } else {
+      // Si solo hay una fecha, buscamos solo esa fecha
+      const fechaFormateada = new Date(fechaDeReembolso).toISOString().split('T')[0];
+
+      filter.fechaDeReembolso = { $regex: fechaFormateada, $options: "i" };
+    }
 
     const result = await VerificationCollectionBackup.aggregate([
       { $match: filter },
@@ -389,7 +405,7 @@ export const getCustomerFlow = async (req, res) => {
     res.json(formattedResult);
 
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener el flujo de clientes.".error.message });
+    res.status(500).json({ message: "Error al obtener el flujo de clientes.", error: error.message });
   }
 };
 
