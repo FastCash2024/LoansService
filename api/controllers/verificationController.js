@@ -45,6 +45,7 @@ export const getAllCredits = async (req, res) => {
       clientesNuevo,
       nombreDelProducto,
       fechaDeReembolso,
+      segmento,
       fechaDeCreacionDeLaTarea,
       fechaDeTramitacionDelCaso,
       fechaDeTramitacionDeCobro,
@@ -114,8 +115,11 @@ export const getAllCredits = async (req, res) => {
       };
     }
 
-    if (fechaDeReembolso) {
-      const fechas = fechaDeReembolso.split(",").map(f => f.trim());
+    // Priorizar fechaDeReembolso, pero si no está, usar segmento
+    const fechaFiltro = fechaDeReembolso || segmento;
+
+    if (fechaFiltro) {
+      const fechas = fechaFiltro.split(",").map(f => f.trim());
 
       if (fechas.length === 2) {
         filter.fechaDeReembolso = {
@@ -123,14 +127,15 @@ export const getAllCredits = async (req, res) => {
           $lte: new Date(fechas[1]).toISOString().split("T")[0],
         };
       } else {
-        const fechaInicio = moment(fechaDeReembolso).startOf('day').toISOString();
-        const fechaFin = moment(fechaDeReembolso).endOf('day').toISOString();
+        const fechaInicio = moment(fechaFiltro).startOf('day').toISOString();
+        const fechaFin = moment(fechaFiltro).endOf('day').toISOString();
         filter.fechaDeReembolso = {
           $gte: fechaInicio,
           $lte: fechaFin
         };
       }
     }
+
 
     // obtener el total de documentos
     const totalDocuments = await VerificationCollection.countDocuments(filter);
@@ -548,7 +553,7 @@ export const getReporteDiario = async (req, res) => {
 export const getReporteDiarioTotales = async (req, res) => {
   try {
     const { fecha, estadoDeCredito } = req.query;
-    
+
     const fechaHoy = new Date();
     const opciones = { timeZone: 'America/Mexico_City' };
     // Obtener los valores por separado y formatearlos
@@ -754,8 +759,8 @@ export const getReporteCDiario = async (req, res) => {
         },
       ],
     };
-    
-    
+
+
     const casosDelDia = await collection.find(filter);
 
     if (casosDelDia.length === 0) {
