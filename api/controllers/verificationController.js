@@ -900,7 +900,7 @@ export const getReporteCDiarioTotales = async (req, res) => {
     const mes = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[1].padStart(2, '0');
     const anio = fechaHoy.toLocaleDateString('es-MX', opciones).split('/')[2];
 
-    const today = fecha || `${anio}-${mes}-/${dia}`;
+    const today = fecha || `${anio}-${mes}-${dia}`;
 
     const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
 
