@@ -136,6 +136,7 @@ export const getAllCredits = async (req, res) => {
       }
     }
 
+    console.log("filtro: ", filter);
 
     // obtener el total de documentos
     const totalDocuments = await VerificationCollection.countDocuments(filter);
@@ -146,6 +147,8 @@ export const getAllCredits = async (req, res) => {
     const credits = await VerificationCollection.find(filter)
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
+
+    console.log("creditos: ", credits);
 
     res.json({
       data: credits,
@@ -699,7 +702,7 @@ export const getReporteCDiario = async (req, res) => {
 
     const today = fecha || `${anio}-${mes}-${dia}`;
 
-    console.log("fecha: ", today);
+    // console.log("fecha: ", today);
 
     const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
 
