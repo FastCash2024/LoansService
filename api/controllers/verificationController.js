@@ -117,14 +117,17 @@ export const getAllCredits = async (req, res) => {
 
     // Priorizar fechaDeReembolso, pero si no está, usar segmento
     const fechaFiltro = fechaDeReembolso || segmento;
-
+    
     if (fechaFiltro) {
       const fechas = fechaFiltro.split(",").map(f => f.trim());
 
       if (fechas.length === 2) {
+        const fechaInicio = moment(fechas[0]).startOf('day').toISOString();
+        const fechaFin = moment(fechas[1]).endOf('day').toISOString();
+
         filter.fechaDeReembolso = {
-          $gte: new Date(fechas[0]).toISOString().split("T")[0],
-          $lte: new Date(fechas[1]).toISOString().split("T")[0],
+          $gte: fechaInicio,
+          $lte: fechaFin,
         };
       } else {
         const fechaInicio = moment(fechaFiltro).startOf('day').toISOString();
@@ -135,6 +138,7 @@ export const getAllCredits = async (req, res) => {
         };
       }
     }
+
 
     console.log("filtro: ", filter);
 
@@ -157,7 +161,7 @@ export const getAllCredits = async (req, res) => {
       totalDocuments,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener los créditos.".error.message });
+    res.status(500).json({ message: "Error al obtener los créditos.", error: error.message });
   }
 };
 
