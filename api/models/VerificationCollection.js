@@ -163,6 +163,7 @@ const verificationCollectionSchema = new mongoose.Schema({
   estadoDeComunicacion: String, // Para reporte de Casos de cobranza
   fechaRegistroComunicacion: String, // Para reporte de Casos de cobranza
   fechaDeTramitacionDeCobro: String,
+  fechaDeCobro: String,
   valorLiquidacion: Number,
   claveBanco: Number,
   acotacionesCobrador: [AcotacionSchema],
