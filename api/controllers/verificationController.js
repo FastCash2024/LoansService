@@ -46,6 +46,7 @@ export const getAllCredits = async (req, res) => {
       nombreDelProducto,
       fechaDeReembolso,
       segmento,
+      fechaDeCobro,
       fechaDeCreacionDeLaTarea,
       fechaDeTramitacionDelCaso,
       fechaDeTramitacionDeCobro,
@@ -116,7 +117,7 @@ export const getAllCredits = async (req, res) => {
     }
 
     // Priorizar fechaDeReembolso, pero si no está, usar segmento
-    const fechaFiltro = fechaDeReembolso || segmento;
+    const fechaFiltro = fechaDeCobro || segmento;
     
     if (fechaFiltro) {
       const fechas = fechaFiltro.split(",").map(f => f.trim());
@@ -125,14 +126,14 @@ export const getAllCredits = async (req, res) => {
         const fechaInicio = moment(fechas[0]).startOf('day').toISOString();
         const fechaFin = moment(fechas[1]).endOf('day').toISOString();
 
-        filter.fechaDeReembolso = {
+        filter.fechaDeCobro = {
           $gte: fechaInicio,
           $lte: fechaFin,
         };
       } else {
         const fechaInicio = moment(fechaFiltro).startOf('day').toISOString();
         const fechaFin = moment(fechaFiltro).endOf('day').toISOString();
-        filter.fechaDeReembolso = {
+        filter.fechaDeCobro = {
           $gte: fechaInicio,
           $lte: fechaFin
         };
