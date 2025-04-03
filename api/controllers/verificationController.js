@@ -4,6 +4,7 @@ import { VerificationCollectionBackup } from '../models/verificationCollectionBa
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
 import { createTracking } from './TrakingOperacionesDeCasos.js';
 import { obtenerFechaMexicoISO } from '../utilities/dates.js'
+import { aplicarFiltroFecha } from '../utilities/filters.js';
 
 function generarSecuencia(count) {
   let base = 15 + Math.floor(Math.floor(count / 999999)) * 1;
@@ -45,7 +46,7 @@ export const getAllCredits = async (req, res) => {
       clientesNuevo,
       nombreDelProducto,
       fechaDeReembolso,
-      segmento,
+      fechaDeDispersion,
       fechaDeCobro,
       fechaDeCreacionDeLaTarea,
       fechaDeTramitacionDelCaso,
@@ -90,58 +91,12 @@ export const getAllCredits = async (req, res) => {
       filter.nombreDelProducto = { $regex: nombreDelProducto, $options: "i" };
     }
 
-    if (fechaDeCreacionDeLaTarea) {
-      const fechaInicio = moment(fechaDeCreacionDeLaTarea).startOf('day').toISOString();
-      const fechaFin = moment(fechaDeCreacionDeLaTarea).endOf('day').toISOString();
-      filter.fechaDeCreacionDeLaTarea = {
-        $gte: fechaInicio,
-        $lte: fechaFin
-      };
-    }
-
-    if (fechaDeTramitacionDelCaso) {
-      const fechaInicio = moment(fechaDeTramitacionDelCaso).startOf('day').toISOString();
-      const fechaFin = moment(fechaDeTramitacionDelCaso).endOf('day').toISOString();
-      filter.fechaDeTramitacionDelCaso = {
-        $gte: fechaInicio,
-        $lte: fechaFin
-      };
-    }
-    if (fechaDeTramitacionDeCobro) {
-      const fechaInicio = moment(fechaDeTramitacionDeCobro).startOf('day').toISOString();
-      const fechaFin = moment(fechaDeTramitacionDeCobro).endOf('day').toISOString();
-      filter.fechaDeTramitacionDeCobro = {
-        $gte: fechaInicio,
-        $lte: fechaFin
-      };
-    }
-
-    // Priorizar fechaDeReembolso, pero si no está, usar segmento
-    const fechaFiltro = fechaDeCobro || segmento;
-    
-    if (fechaFiltro) {
-      const fechas = fechaFiltro.split(",").map(f => f.trim());
-
-      if (fechas.length === 2) {
-        const fechaInicio = moment(fechas[0]).startOf('day').toISOString();
-        const fechaFin = moment(fechas[1]).endOf('day').toISOString();
-
-        filter.fechaDeCobro = {
-          $gte: fechaInicio,
-          $lte: fechaFin,
-        };
-      } else {
-        const fechaInicio = moment(fechaFiltro).startOf('day').toISOString();
-        const fechaFin = moment(fechaFiltro).endOf('day').toISOString();
-        filter.fechaDeCobro = {
-          $gte: fechaInicio,
-          $lte: fechaFin
-        };
-      }
-    }
-
-
-    console.log("filtro: ", filter);
+    aplicarFiltroFecha(filter, "fechaDeCreacionDeLaTarea", fechaDeCreacionDeLaTarea);
+    aplicarFiltroFecha(filter, "fechaDeTramitacionDelCaso", fechaDeTramitacionDelCaso);
+    aplicarFiltroFecha(filter, "fechaDeTramitacionDeCobro", fechaDeTramitacionDeCobro);
+    aplicarFiltroFecha(filter, "fechaDeCobro", fechaDeCobro);
+    aplicarFiltroFecha(filter, "fechaDeReembolso", fechaDeReembolso);
+    aplicarFiltroFecha(filter, "fechaDeDispersion", fechaDeDispersion);
 
     // obtener el total de documentos
     const totalDocuments = await VerificationCollection.countDocuments(filter);
@@ -353,41 +308,44 @@ export const getCustomerFlow = async (req, res) => {
 
     let filter = {};
 
-    // Comprobamos si fechaDeReembolso es un rango de fechas o solo una fecha
+    // Convertimos las fechas de reembolso en rangos
     const fechas = fechaDeReembolso.split(",").map(f => f.trim());
 
     if (fechas.length === 2) {
-      // Si hay un rango de fechas, usamos ambas fechas
-      const fechaInicio = new Date(fechas[0]).toISOString();
-      const fechaFin = new Date(fechas[1]).toISOString();
-
-      filter.fechaDeReembolso = {
-        $gte: fechaInicio,
-        $lte: fechaFin,
-      };
+      const fechaInicio = moment(fechas[0]).startOf("day").toISOString();
+      const fechaFin = moment(fechas[1]).endOf("day").toISOString();
+      filter.fechaDeReembolso = { $gte: fechaInicio, $lte: fechaFin };
     } else {
-      // Si solo hay una fecha, buscamos solo esa fecha
-      const fechaFormateada = new Date(fechaDeReembolso).toISOString().split('T')[0];
-
+      const fechaFormateada = moment(fechaDeReembolso).format("YYYY-MM-DD");
       filter.fechaDeReembolso = { $regex: fechaFormateada, $options: "i" };
     }
 
+    // Definir las fechas permitidas (hoy, mañana y pasado mañana)
+    const hoy = moment().format("YYYY-MM-DD");
+    const manana = moment().add(1, "days").format("YYYY-MM-DD");
+    const pasadoManana = moment().add(2, "days").format("YYYY-MM-DD");
+
     const result = await VerificationCollectionBackup.aggregate([
-      { $match: filter },
+      {
+        $match: {
+          ...filter,
+          fechaDeCobro: { $regex: `^(${hoy}|${manana}|${pasadoManana})` }
+        }
+      },
       {
         $group: {
           _id: {
             nombreDelProducto: "$nombreDelProducto",
             fechaDeReembolso: { $substr: ["$fechaDeReembolso", 0, 10] }
           },
-          total: { $sum: 1 }, // Cuenta el total de documentos en el grupo
+          total: { $sum: 1 },
           totalCasosCobrados: {
             $sum: { $cond: [{ $eq: ["$estadoDeCredito", "Pagado"] }, 1, 0] }
           },
           totalMontoCobrado: {
             $sum: { $cond: [{ $eq: ["$estadoDeCredito", "Pagado"] }, "$valorSolicitado", 0] }
           },
-          totalMonto: { $sum: "$valorSolicitado" } // Nuevo campo para el total de todos los valores
+          totalMonto: { $sum: "$valorSolicitado" }
         }
       },
       {
@@ -416,7 +374,6 @@ export const getCustomerFlow = async (req, res) => {
     }, {});
 
     res.json(formattedResult);
-
   } catch (error) {
     res.status(500).json({ message: "Error al obtener el flujo de clientes.", error: error.message });
   }
