@@ -1,16 +1,5 @@
 import TrakingOperacionesDeCasos from '../models/TrakingOperacionesDeCasos.js';
 
-export const createTrackings = async (req, res) => {
-  try {
-    const { acotacionesAuditor, ...data } = req.body; // Excluimos acotacionesAuditor
-    const newTracking = new TrakingOperacionesDeCasos(data);
-    await newTracking.save();
-    res.status(201).json({ message: "Registro creado sin acotacionesAuditor", data: newTracking });
-  } catch (error) {
-    res.status(500).json({ message: "Error al crear el registro.".error.message });
-  }
-};
-
 export const createTracking = async (tracking) => {
   try {
     const newTracking = new TrakingOperacionesDeCasos(tracking);
@@ -20,8 +9,6 @@ export const createTracking = async (tracking) => {
     return `Error al crear el tracking: ${error.message}`;
   }
 };
-
-
 
 export const getTrackings = async (req, res) => {
   try {
@@ -53,7 +40,6 @@ export const getTrackings = async (req, res) => {
     res.status(500).json({ message: "Error al obtener los registros.".error.message });
   }
 };
-
 
 export const updateTrackingById = async (req, res) => {
   try {

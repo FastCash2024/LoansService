@@ -1,5 +1,6 @@
 import express from 'express';
-import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getReporteDiario, getReporteCDiario, getUpdateSTP, updateCreditoAprobado, reporteComision, getReporteDiarioTotales, getReporteCDiarioTotales } from '../controllers/verificationController.js';
+import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getUpdateSTP, updateCreditoAprobado, reporteComision } from '../controllers/verificationController.js';
+import { getReporteCDiario, getReporteCDiarioTotales, getReporteDiario, getReporteDiarioTotales } from '../controllers/reportsController.js';
 
 const router = express.Router();
 
@@ -7,7 +8,6 @@ router.post('/add', createCredit);
 router.get('/', getAllCredits);
 router.get('/reporte', getReporteDiario);
 router.get('/reportecobrados', getReporteCDiario);
-// router.get('/customers', getCustomers);
 router.get('/customer', getCustomerFlow);
 router.get('/phone', getCreditByPhone);
 router.get('/reportcomision', reporteComision);

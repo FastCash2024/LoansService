@@ -128,99 +128,10 @@ export const asignationCasesVerification = async (req, res) => {
     }
 };
 
-// export const assignCasesBySegment = async (req, res) => {
-//     try {
-//         const estadoDeCredito = "Dispersado";
-//         const today = moment().tz("America/Mexico_City");
-
-//         const users = await User.find({ tipoDeGrupo: "Asesor de Cobranza" });
-
-//         if (users.length === 0) {
-//             return res.status(400).json({ message: "No hay cobradores disponibles" });
-//         }
-
-//         const cases = await VerificationCollection.find({
-//             estadoDeCredito: { $regex: estadoDeCredito, $options: "i" }
-//         });
-
-//         const casosPorSegmento = { D0: [], D1: [], D2: [], S1: [], S2: [] };
-//         const fechaActual = today.toDate();
-
-//         cases.forEach(caso => {
-//             if (!caso.fechaDeDispersion) return;
-
-//             const fechaDispersion = moment(caso.fechaDeDispersion).tz("America/Mexico_City").toDate();
-//             const diferenciaDiasDispersion = Math.round((fechaActual - fechaDispersion) / (1000 * 60 * 60 * 24));
-
-//             if (diferenciaDiasDispersion < 7) {
-//                 console.log(`El caso ${caso.numeroDePrestamo} aún no cumple con los 7 días de dispersión.`);
-//                 return;
-//             }
-
-//             if (diferenciaDiasDispersion === 7) {
-//                 casosPorSegmento.D0.push(caso);
-//             } else if (diferenciaDiasDispersion === 6) {
-//                 casosPorSegmento.D1.push(caso);
-//             } else if (diferenciaDiasDispersion === 5) {
-//                 casosPorSegmento.D2.push(caso);
-//             } else if (diferenciaDiasDispersion > 7 && diferenciaDiasDispersion < 15) {
-//                 casosPorSegmento.S1.push(caso);
-//             } else if (diferenciaDiasDispersion > 14 && diferenciaDiasDispersion <= 22) {
-//                 casosPorSegmento.S2.push(caso);
-//             }
-//         });
-
-//         Object.keys(casosPorSegmento).forEach(segmento => {
-//             const cobradoresDeSegmento = users.filter(user => user.cuenta.includes(`${segmento}-`));
-
-//             if (casosPorSegmento[segmento].length > 0 && cobradoresDeSegmento.length > 0) {
-//                 assignCasesTotally(casosPorSegmento[segmento], segmento, cobradoresDeSegmento);
-//             }
-//         });
-
-//         console.log("Distribución de casos completada.");
-//         return res.status(200).json({ message: "Casos distribuidos correctamente" });
-
-//     } catch (error) {
-//         console.error("Error en la distribución de casos", error.message);
-//         return res.status(500).json({ message: "Error en la distribución de casos", error: error.message });
-//     }
-// };
-
-// const assignCasesTotally = (cases, segment, users) => {
-//     const totalCases = cases.length;
-//     const totalUsers = users.length;
-//     let caseIndex = 0;
-//     const casesPerUser = Math.floor(totalCases / totalUsers);
-//     let extraCases = totalCases % totalUsers;
-
-//     while (caseIndex < totalCases) {
-//         for (let i = 0; i < users.length && caseIndex < totalCases; i++) {
-//             const user = users[i];
-//             const userCases = casesPerUser + (extraCases > 0 ? 1 : 0); 
-//             for (let j = 0; j < userCases && caseIndex < totalCases; j++) {
-//                 cases[caseIndex].cuentaCobrador = user.cuenta;
-//                 cases[caseIndex].nombreDeLaEmpresa = users.origenDeLaCuenta;
-//                 cases[caseIndex].fechaDeTramitacionDelCobro = moment().tz("America/Mexico_City").format();
-//                 caseIndex++;
-//             }
-//             if (extraCases > 0) extraCases--;
-//         }
-//     }
-
-//     Promise.all(
-//         cases.map(async (caso) => {
-//             await VerificationCollection.findByIdAndUpdate(caso._id, caso, { new: true });
-//         })
-//     );
-// };
-
-
 // Programar la ejecucion automatica en (hora de Mexico)
 cron.schedule("0 7,10,12,14,16 * * *", () => {
     console.log("Ejecutando asignación de casos...");
     asignationCasesVerification();
-    // assignCasesBySegment();
 }, {
     timezone: "America/Mexico_City"
 });
