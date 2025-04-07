@@ -228,8 +228,6 @@ export const updateCreditoAprobado = async (req, res) => {
       return res.status(404).json({ message: "Crédito no encontrado" });
     }
 
-    await createTracking(trackingData);
-
     let mensajeDispersión = "";
     if (updatedCredit.estadoDeCredito === "Aprobado") {
       try {
