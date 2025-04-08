@@ -287,8 +287,6 @@ export const getReporteDiario = async (req, res) => {
   
       const today = fecha || `${anio}-${mes}-${dia}`;
   
-      // console.log("fecha: ", today);
-  
       const collection = fecha ? VerificationCollectionBackup : VerificationCollection;
   
       const filter = {
@@ -382,11 +380,11 @@ export const getReporteDiario = async (req, res) => {
             pagosTotal: 0,
             tasaRecuperacionTotal: 0,
             casosTotales: 0,
-            casosFueraDeHorario: 0, // Nuevo campo
+            casosFueraDeHorario: 0,
           };
         }
   
-        const horaCredito = caso.fechaDeReembolso ? obtenerFechaMexicoISO(caso.fechaDeReembolso) : null;
+        const horaCredito = caso.fechaDeReembolso ? obtenerFechaMexicoISO(caso.fechaDeReembolso) : obtenerFechaMexicoISO(caso.fechaDeTramitacionDeCobro);
         const horaComunicacion = obtenerFechaMexicoISO(caso.fechaRegistroComunicacion);
   
         if (['Dispersado', 'Pagado', 'Pagado con Extensión'].includes(caso.estadoDeCredito)) {
