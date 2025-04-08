@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getUpdateSTP, updateCreditoAprobado, reporteComision } from '../controllers/verificationController.js';
+import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getUpdateSTP, getForUpdateSTP, updateCreditoAprobado, reporteComision } from '../controllers/verificationController.js';
 import { getReporteCDiario, getReporteCDiarioTotales, getReporteDiario, getReporteDiarioTotales } from '../controllers/reportsController.js';
 
 const router = express.Router();
@@ -15,6 +15,7 @@ router.get('/totalreporteverificacion', getReporteDiarioTotales);
 router.get('/totalreportecobro', getReporteCDiarioTotales);
 router.get('/:id', getCreditById);
 router.get('/updateSTP/:idDeSubFactura', getUpdateSTP);
+router.get('/getForUpdateSTP/:cuentaClabeParaCobro', getForUpdateSTP);
 router.put('/:id', updateCredit);
 router.put('/creditoaprobado/:id', updateCreditoAprobado);
 router.delete('/:id', deleteCredit);

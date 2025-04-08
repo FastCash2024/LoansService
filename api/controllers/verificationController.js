@@ -407,6 +407,36 @@ export const getUpdateSTP = async (req, res) => {
   }
 };
 
+export const getForUpdateSTP = async (req, res) => {
+  try {
+    const credit = await VerificationCollection.findOne({
+      cuentaClabeParaCobro: req.params.cuentaClabeParaCobro,
+    });
+
+    if (!credit) {
+      return res.status(404).json({ message: "Crédito no encontrado" });
+    }
+
+    const creditData = credit.toObject();
+
+    creditData.contactos = [];
+    creditData.sms = [];
+    creditData.acotacionesCobrador = [];
+    creditData.acotaciones = [];
+    creditData.trackingDeOperaciones = [];
+    creditData.cuentasBancarias = [];
+
+    creditData.stdDispersion = {};
+
+    if (creditData.fechaDeTramitacionDelCaso) {
+      creditData.fechaDeTramitacionDelCaso = formatFechaYYYYMMDD(creditData.fechaDeTramitacionDelCaso);
+    }
+    res.json(creditData);
+  } catch (error) {
+    console.error("Error en getUpdateSTP:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const reporteComision = async (req, res) => {
   try {
