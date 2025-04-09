@@ -173,7 +173,7 @@ const verificationCollectionSchema = new mongoose.Schema({
   stdDispersion: StdDispersionSchema,
   historialDeAsesores: [HistorialAsesorSchema],
   // stpOrdenDePago: StdDispersionSchema
-  cuentaClaveParaCobro: String,
+  cuentaClabeParaCobro: String,
   stpOrdenDeDispersion: Object
 }, {
   timestamps: true,
