@@ -1,13 +1,8 @@
 import express from 'express';
-<<<<<<< HEAD
 
 import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getUpdateSTP, getForUpdateSTP, updateCreditoAprobado, reporteComision, getSegmentedCases, getAllCreditsOrderByDate } from '../controllers/verificationController.js';
 import { getReporteCDiario, getReporteCDiarioTotales, getReporteDiario, getReporteDiarioTotales, getReporteTotales } from '../controllers/reportsController.js';
 
-=======
-import { createCredit, getAllCredits, getCreditById, getCreditByPhone, updateCredit, deleteCredit, getCustomerFlow, getUpdateSTP, getForUpdateSTP, updateCreditoAprobado, reporteComision } from '../controllers/verificationController.js';
-import { getReporteCDiario, getReporteCDiarioTotales, getReporteDiario, getReporteTotales, getReporteDiarioTotales } from '../controllers/reportsController.js';
->>>>>>> 0f541656e0a85b43da07b274d6fbaebd322bc8db
 
 const router = express.Router();
 
