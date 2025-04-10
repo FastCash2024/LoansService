@@ -2,8 +2,8 @@ import moment from 'moment';
 import VerificationCollection from '../models/VerificationCollection.js';
 import { VerificationCollectionBackup } from '../models/verificationCollectionBackupSchema.js'; '../models/verificationCollectionBackupSchema.js';
 import { formatFechaYYYYMMDD } from '../utilities/currentWeek.js';
-import { createTracking } from './TrakingOperacionesDeCasos.js';
 import { aplicarFiltroFecha } from '../utilities/filters.js';
+import { calculateDateRangeForWeek, calculateDynamicDateRange } from '../utilities/filtersCustomer.js';
 
 function generarSecuencia(count) {
   let base = 15 + Math.floor(Math.floor(count / 999999)) * 1;
@@ -297,84 +297,80 @@ export const getVerificationCount = async (req, res) => {
 
 export const getCustomerFlow = async (req, res) => {
   try {
-    const { fechaDeReembolso } = req.query;
+    const { fechaDeReembolso, semana, ...filters } = req.query;
 
-    if (!fechaDeReembolso) {
-      return res.status(400).json({ message: "Faltan parámetros requeridos" });
-    }
+    let startDate, endDate;
 
-    let filter = {};
-
-    // Convertimos las fechas de reembolso en rangos
-    const fechas = fechaDeReembolso.split(",").map(f => f.trim());
-
-    if (fechas.length === 2) {
-      const fechaInicio = moment(fechas[0]).startOf("day").toISOString();
-      const fechaFin = moment(fechas[1]).endOf("day").toISOString();
-      filter.fechaDeReembolso = { $gte: fechaInicio, $lte: fechaFin };
+    if (semana) {
+      // Si se recibe una semana, calcular el rango de esa semana
+      const { startOfWeek, endOfWeek } = calculateDateRangeForWeek(semana);
+      startDate = startOfWeek.startOf('day');
+      endDate = endOfWeek.endOf('day');
     } else {
-      const fechaFormateada = moment(fechaDeReembolso).format("YYYY-MM-DD");
-      filter.fechaDeReembolso = { $regex: fechaFormateada, $options: "i" };
+      // Si no se recibe semana, calcular desde viernes anterior hasta hoy
+      const today = moment();
+      const dayOfWeek = today.day(); // 0 = domingo, 1 = lunes, ..., 5 = viernes, 6 = sábado
+
+      const lastFriday = dayOfWeek >= 5
+        ? today.clone().subtract(dayOfWeek - 5, 'days')
+        : today.clone().subtract(7 - (5 - dayOfWeek), 'days');
+
+      startDate = lastFriday.startOf('day');
+      endDate = today.endOf('day');
     }
 
-    // Definir las fechas permitidas (hoy, mañana y pasado mañana)
-    const hoy = moment().format("YYYY-MM-DD");
-    const manana = moment().add(1, "days").format("YYYY-MM-DD");
-    const pasadoManana = moment().add(2, "days").format("YYYY-MM-DD");
+    const dateFilter = { $gte: startDate.toISOString(), $lte: endDate.toISOString() };
 
-    const result = await VerificationCollectionBackup.aggregate([
-      {
-        $match: {
-          ...filter,
-          fechaDeCobro: { $regex: `^(${hoy}|${manana}|${pasadoManana})` }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            nombreDelProducto: "$nombreDelProducto",
-            fechaDeReembolso: { $substr: ["$fechaDeReembolso", 0, 10] }
-          },
-          total: { $sum: 1 },
-          totalCasosCobrados: {
-            $sum: { $cond: [{ $eq: ["$estadoDeCredito", "Pagado"] }, 1, 0] }
-          },
-          totalMontoCobrado: {
-            $sum: { $cond: [{ $eq: ["$estadoDeCredito", "Pagado"] }, "$valorSolicitado", 0] }
-          },
-          totalMonto: { $sum: "$valorSolicitado" }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          nombreDelProducto: "$_id.nombreDelProducto",
-          fechaDeReembolso: "$_id.fechaDeReembolso",
-          total: 1,
-          totalCasosCobrados: 1,
-          totalMontoCobrado: 1,
-          totalMonto: 1
-        }
+    const filter = {
+      ...filters,
+      estadoDeCredito: { '$in': ['Dispersado', 'Pagado', 'Pagado con Extensión'] },
+      fechaDeReembolso: dateFilter
+    };
+
+    // Traer préstamos
+    const loans = await VerificationCollection.find(filter);
+
+    const result = {};
+
+    loans.forEach(loan => {
+      const fecha = moment(loan.fechaDeReembolso).format('YYYY-MM-DD');
+      const producto = loan.nombreDelProducto;
+
+      if (!result[fecha]) {
+        result[fecha] = {};
       }
-    ]);
+      if (!result[fecha][producto]) {
+        result[fecha][producto] = { pagaron: 0, totalPagar: 0 };
+      }
 
-    const formattedResult = result.reduce((acc, item) => {
-      acc[item.nombreDelProducto] = {
-        nombreDelProducto: item.nombreDelProducto,
-        total: item.total,
-        totalCasosCobrados: item.totalCasosCobrados,
-        totalMontoCobrado: item.totalMontoCobrado,
-        totalMonto: item.totalMonto,
-        fechaDeReembolso: item.fechaDeReembolso,
-      };
-      return acc;
-    }, {});
+      result[fecha][producto].totalPagar += 1;
 
-    res.json(formattedResult);
+      if (loan.estadoDeCredito === 'Pagado' || loan.estadoDeCredito === 'Pagado con Extensión') {
+        result[fecha][producto].pagaron += 1;
+      }
+    });
+
+    // Agregar días que no tengan préstamos
+    let currentDate = startDate.clone();
+    while (currentDate.isSameOrBefore(endDate)) {
+      const fecha = currentDate.format('YYYY-MM-DD');
+      if (!result[fecha]) {
+        result[fecha] = {};
+      }
+      // Asegurar que al menos haya un registro vacío
+      if (Object.keys(result[fecha]).length === 0) {
+        result[fecha]['SinProducto'] = { pagaron: 0, totalPagar: 0 };
+      }
+      currentDate.add(1, 'day');
+    }
+
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ message: "Error al obtener el flujo de clientes.", error: error.message });
+    console.error('Error al obtener los préstamos:', error);
+    res.status(500).json({ message: 'Error al obtener los préstamos.', error: error.message });
   }
 };
+
 
 export const getUpdateSTP = async (req, res) => {
   try {
@@ -473,5 +469,138 @@ export const reporteComision = async (req, res) => {
   } catch (error) {
     console.error("Error en reporteComision:", error);
     res.status(500).json({ error: "Error interno del servidor.", details: error.message });
+  }
+};
+
+export const getSegmentedCases = async (req, res) => {
+  try {
+    const today = moment().startOf('day');
+    const tomorrow = moment().add(1, 'days').startOf('day');
+    const dayAfterTomorrow = moment().add(2, 'days').startOf('day');
+    const yesterday = moment().subtract(1, 'days').startOf('day');
+    const sevenDaysAgo = moment().subtract(7, 'days').startOf('day');
+    const fifteenDaysAgo = moment().subtract(15, 'days').startOf('day');
+
+    const filter = {
+      estadoDeCredito: { $in: ["Dispersado", "Pagado", "Pagado con Extensión"] },
+      fechaDeCobro: { $gte: fifteenDaysAgo.toISOString(), $lte: dayAfterTomorrow.toISOString() }
+    };
+
+    const credits = await VerificationCollection.find(filter);
+
+    let totalCasos = credits.length;
+    let D0 = 0, D1 = 0, D2 = 0, S1 = 0, S2 = 0;
+
+    credits.forEach(credit => {
+      const fechaCobro = moment(credit.fechaDeCobro).startOf('day'); // Ignoramos hora
+
+      if (fechaCobro.isSame(today, 'day')) {
+        D0++;
+      } else if (fechaCobro.isSame(tomorrow, 'day')) {
+        D1++;
+      } else if (fechaCobro.isSame(dayAfterTomorrow, 'day')) {
+        D2++;
+      } else if (fechaCobro.isBetween(sevenDaysAgo, yesterday, 'day', '[]')) {
+        S1++;
+      } else if (fechaCobro.isBetween(fifteenDaysAgo, sevenDaysAgo.clone().subtract(1, 'day'), 'day', '[]')) {
+        S2++;
+      }
+      // Si no entra en ningún segmento, no hacemos nada.
+    });
+
+    res.json({
+      totalCasos,
+      segmentos: { D0, D1, D2, S1, S2 }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener los casos segmentados.", error: error.message });
+  }
+};
+
+export const getAllCreditsOrderByDate = async (req, res) => {
+  try {
+    const {
+      cuentaVerificador,
+      cuentaCobrador,
+      cuentaAuditor,
+      numeroDePrestamo,
+      idDeSubFactura,
+      estadoDeCredito,
+      nombreDelCliente,
+      numeroDeTelefonoMovil,
+      clientesNuevo,
+      nombreDelProducto,
+      fechaDeReembolso,
+      fechaDeDispersion,
+      fechaDeCobro,
+      fechaDeCreacionDeLaTarea,
+      fechaDeTramitacionDelCaso,
+      fechaDeTramitacionDeCobro,
+      limit = 5,
+      page = 1
+    } = req.query;
+
+    // Construcción dinámica del filtro
+    const filter = {};
+    if (cuentaVerificador) {
+      filter.cuentaVerificador = { $regex: cuentaVerificador, $options: "i" };
+    }
+    if (cuentaCobrador) {
+      filter.cuentaCobrador = { $regex: cuentaCobrador, $options: "i" };
+    }
+    if (cuentaAuditor) {
+      filter.cuentaAuditor = { $regex: cuentaAuditor, $options: "i" };
+    }
+    if (numeroDePrestamo) {
+      filter.numeroDePrestamo = { $regex: numeroDePrestamo, $options: "i" };
+    }
+    if (idDeSubFactura) {
+      filter.idDeSubFactura = { $regex: idDeSubFactura, $options: "i" };
+    }
+
+    if (estadoDeCredito) {
+      const palabras = estadoDeCredito.split(/[,?]/).map(palabra => palabra.trim());
+      filter.estadoDeCredito = palabras;
+    }
+
+    if (nombreDelCliente) {
+      filter.nombreDelCliente = { $regex: nombreDelCliente, $options: "i" };
+    }
+    if (numeroDeTelefonoMovil) {
+      filter.numeroDeTelefonoMovil = { $regex: numeroDeTelefonoMovil, $options: "i" };
+    }
+    if (clientesNuevo) {
+      filter.clientesNuevo = clientesNuevo === "true"; // Convertir a booleano
+    }
+    if (nombreDelProducto) {
+      filter.nombreDelProducto = { $regex: nombreDelProducto, $options: "i" };
+    }
+
+    aplicarFiltroFecha(filter, "fechaDeCreacionDeLaTarea", fechaDeCreacionDeLaTarea);
+    aplicarFiltroFecha(filter, "fechaDeTramitacionDelCaso", fechaDeTramitacionDelCaso);
+    aplicarFiltroFecha(filter, "fechaDeTramitacionDeCobro", fechaDeTramitacionDeCobro);
+    aplicarFiltroFecha(filter, "fechaDeCobro", fechaDeCobro);
+    aplicarFiltroFecha(filter, "fechaDeReembolso", fechaDeReembolso);
+    aplicarFiltroFecha(filter, "fechaDeDispersion", fechaDeDispersion);
+
+    // obtener el total de documentos
+    const totalDocuments = await VerificationCollection.countDocuments(filter);
+
+    // calcular el total de pagianas
+    const totalPages = Math.ceil(totalDocuments / limit);
+    // Consulta a MongoDB con filtro
+    const credits = await VerificationCollection.find(filter)
+      .sort({ createdAt: -1 })  // Ordenar en orden descendente por 'createdAt'
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    res.json({
+      data: credits,
+      currentPage: parseInt(page),
+      totalPages,
+      totalDocuments,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener los créditos.", error: error.message });
   }
 };

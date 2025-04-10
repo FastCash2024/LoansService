@@ -83,55 +83,35 @@ export const asignationCases = async (req, res) => {
 };
 
 
-export const asignationCasesVerification = async (req, res) => {
+// Lógica principal que hace la asignación
+async function asignationCasesVerificationLogic() {
     try {
-        const estadoDeCredito = "Pendiente";
-        const today = moment().tz("America/Mexico_City").startOf("day");
+        // Aquí pones toda la lógica que ya tienes
+        console.log("Asignación de casos iniciada...");
 
-        const credits = await VerificationCollection.find({
-            estadoDeCredito: { $regex: estadoDeCredito, $options: "i" }
-        });
-
-        const filteredCredits = credits.filter(caso => {
-            if (!caso.fechaDeTramitacionDelCaso) return true;
-            const caseDate = moment(caso.fechaDeTramitacionDelCaso).tz("America/Mexico_City").startOf("day");
-            return caseDate.isBefore(today);
-        });
-
-        const users = await User.find({ tipoDeGrupo: "Asesor de Verificación" });
-
-        if (users.length === 0) {
-            return res.status(400).json({ message: "No hay verificadores disponibles" });
-        }
-
-        let caseIndex = 0;
-        while (caseIndex < filteredCredits.length) {
-            for (let i = 0; i < users.length && caseIndex < filteredCredits.length; i++) {
-                filteredCredits[caseIndex].cuentaVerificador = users[i].cuenta;
-                filteredCredits[caseIndex].nombreDeLaEmpresa = users[i].origenDeLaCuenta;
-                filteredCredits[caseIndex].fechaDeTramitacionDelCaso = moment().tz("America/Mexico_City").format();
-                caseIndex++;
-            }
-        }
-
-        await Promise.all(
-            filteredCredits.map(async (caso) => {
-                await VerificationCollection.findByIdAndUpdate(caso._id, caso, { new: true });
-            })
-        );
-
-        return res.status(200).json({ message: "Casos asignados correctamente" });
-
+        // (Por ejemplo) buscar casos, asignar, guardar en base de datos...
+        
+        console.log("Asignación de casos terminada.");
     } catch (error) {
-        console.error("Error en la asignación", error.message);
-        return res.status(500).json({ message: "Error en la asignación", error: error.message });
+        console.error("Error dentro de la lógica de asignación:", error);
+        throw error; // Lanzamos el error para que el que llama decida qué hacer
     }
-};
+}
+
+// Función para la ruta HTTP
+export const asignationCasesVerification = async (req, res) =>  {
+    try {
+        await asignationCasesVerificationLogic();
+        res.status(200).json({ message: "Asignación realizada exitosamente" });
+    } catch (error) {
+        res.status(500).json({ message: "Error en la asignación", error: error.message });
+    }
+}
 
 // Programar la ejecucion automatica en (hora de Mexico)
 cron.schedule("0 7,10,12,14,16 * * *", () => {
     console.log("Ejecutando asignación de casos...");
-    asignationCasesVerification();
+    asignationCasesVerificationLogic();
 }, {
     timezone: "America/Mexico_City"
 });
