@@ -75,6 +75,7 @@ const HistorialTramitacionDeCasos = new mongoose.Schema({
   nombreDeLaEmpresa: String,
   cantidadDispersada: String,
   fechaDeDispersion: String,
+  tipoCuenta: String,
   
   // Datos capturados del caso
   contactos: [ContactosSchema],

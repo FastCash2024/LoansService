@@ -176,9 +176,12 @@ const enviarSolicitudAprobacion = async (credit) => {
     _id: credit._id.toString(),
     nombreDelCliente: credit.nombreDelCliente,
     numeroDeCuenta: credit.numeroDeCuenta,
-    nombreBanco: credit.nombreBanco,
     valorEnviar: credit.valorEnviar,
+    claveBanco: credit.claveBanco,
+    tipoCuenta: credit.tipoCuenta === "Tarjeta de debito" ? 3 : 40,
+    rfcCurp: credit.rfcCurp,
   };
+
 
   try {
     const response = await fetch(url, {
