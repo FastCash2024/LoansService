@@ -179,7 +179,7 @@ const enviarSolicitudAprobacion = async (credit) => {
     valorEnviar: credit.valorEnviar,
     claveBanco: credit.claveBanco,
     tipoCuenta: credit.tipoCuenta === "Tarjeta de debito" ? 3 : 40,
-    rfcCurp: credit.rfcCurp,
+    rfcCurp: credit?.rfcCurp ? credit?.rfcCurp:"ND",
   };
 
 

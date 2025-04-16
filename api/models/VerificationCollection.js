@@ -141,7 +141,7 @@ const verificationCollectionSchema = new mongoose.Schema({
   cantidadDispersada: String,
   fechaDeDispersion: String,
   tipoCuenta: String,
-
+  rfcCurp: String,
   // Datos capturados del caso
   contactos: [ContactosSchema],
   sms: [SmsSchema],
